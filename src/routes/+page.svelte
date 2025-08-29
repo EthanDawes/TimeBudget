@@ -7,7 +7,8 @@
 		startTimer,
 		calculateProgress,
 		formatDuration,
-		getActiveTimer
+		getActiveTimer,
+		debugTimerState
 	} from '$lib/utils/timeManager';
 
 	let budgetConfig: BudgetConfig = {};
@@ -119,11 +120,15 @@
 	}
 
 	onMount(() => {
+		console.log('=== PAGE LOAD DEBUG ===');
+		debugTimerState();
+
 		budgetConfig = loadBudgetConfig();
 		weeklyData = loadWeeklyData();
 
 		console.log('Budget config loaded:', budgetConfig);
 		console.log('Weekly data loaded:', weeklyData);
+		console.log('Weekly data activeTimer:', weeklyData.activeTimer);
 
 		updateProgress();
 
@@ -136,10 +141,33 @@
 			}
 		}, 1000);
 
+		// Handle page visibility changes to preserve timer
+		const handleVisibilityChange = () => {
+			if (document.hidden && weeklyData.activeTimer) {
+				console.log('Page hidden, saving timer state');
+				// Timer state is already being saved by saveWeeklyData in updateProgress
+			} else if (!document.hidden && weeklyData.activeTimer) {
+				console.log('Page visible, timer still active');
+			}
+		};
+
+		// Handle page unload to preserve timer
+		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+			if (weeklyData.activeTimer) {
+				console.log('Page unloading with active timer, state preserved');
+				// Don't prevent unload, just ensure state is saved
+			}
+		};
+
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		window.addEventListener('beforeunload', handleBeforeUnload);
+
 		return () => {
 			if (progressUpdateInterval) {
 				clearInterval(progressUpdateInterval);
 			}
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			window.removeEventListener('beforeunload', handleBeforeUnload);
 		};
 	});
 </script>
