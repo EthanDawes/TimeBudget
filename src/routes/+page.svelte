@@ -17,19 +17,24 @@
 		activeTimer: null
 	};
 	let progress: CategoryProgress[] = [];
-	let activeTimer: { category: string; subcategory: string; eventName: string } | null = null;
+	let activeTimer: { category: string; subcategory: string } | null = null;
 
 	// Update progress every second to show live timer
 	let progressUpdateInterval: number;
 
 	function updateProgress() {
 		progress = calculateProgress(budgetConfig, weeklyData);
-		activeTimer = getActiveTimer(weeklyData);
+		const fullActiveTimer = getActiveTimer(weeklyData);
+		activeTimer = fullActiveTimer
+			? {
+					category: fullActiveTimer.category,
+					subcategory: fullActiveTimer.subcategory
+				}
+			: null;
 	}
 
 	function handleTimerClick(category: string, subcategory: string) {
-		// Find the first event in this subcategory to start timing
-		// In a future enhancement, this could show a modal to select specific event
+		// Find the first event in this subcategory to start timing (events are internal only)
 		const firstEvent = Object.keys(budgetConfig[category]?.[subcategory] || {})[0];
 		if (!firstEvent) return;
 
@@ -37,8 +42,7 @@
 		if (
 			activeTimer &&
 			activeTimer.category === category &&
-			activeTimer.subcategory === subcategory &&
-			activeTimer.eventName === firstEvent
+			activeTimer.subcategory === subcategory
 		) {
 			return;
 		}
@@ -170,8 +174,7 @@
 					<div class="mr-3 h-3 w-3 animate-pulse rounded-full bg-blue-500"></div>
 					<p class="font-medium text-blue-800">
 						Currently tracking: <strong>{activeTimer.category}</strong> →
-						<strong>{activeTimer.subcategory}</strong> →
-						<strong>{activeTimer.eventName}</strong>
+						<strong>{activeTimer.subcategory}</strong>
 					</p>
 				</div>
 			</div>
