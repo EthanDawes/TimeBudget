@@ -1,34 +1,36 @@
 export interface BudgetConfig {
   [category: string]: {
-    [subcategory: string]: {
-      [eventName: string]: number; // duration in minutes
-    };
-  };
+    // Total budgeted time for this category. Can be larger than the sum of subcategories to allow for wiggle room
+    time: number
+    subcategories: {
+      [subcategory: string]: number
+    }
+  }
 }
 
 export interface TimeEntry {
-  category: string;
-  subcategory: string;
-  eventName: string;
-  duration: number; // accumulated time in minutes
+  category: string
+  subcategory: string
+  timestampStart: number
+  timestampEnd?: number
 }
 
 export interface WeeklyTimeData {
-  weekStart: string; // ISO date string of Monday
-  entries: TimeEntry[];
+  weekStart: string // ISO date string of Monday
+  entries: TimeEntry[]
   activeTimer: {
-    category: string;
-    subcategory: string;
-    eventName: string;
-    startTime: number; // timestamp
-  } | null;
+    category: string
+    subcategory: string
+    eventName: string
+    startTime: number // timestamp
+  } | null
 }
 
 export interface CategoryProgress {
-  category: string;
-  subcategory: string;
-  eventName: string;
-  budgeted: number; // in minutes
-  used: number; // in minutes
-  percentage: number;
+  category: string
+  subcategory: string
+  eventName: string
+  budgeted: number // in minutes
+  used: number // in minutes
+  percentage: number
 }
