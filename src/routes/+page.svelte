@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte"
-  import type { BudgetConfig, WeeklyTimeData, CategoryProgress } from "$lib/types"
+  import type { BudgetConfig, WeeklyTimeData, CategoryProgress } from "$lib/types/types"
   import {
     loadBudgetConfig,
     loadWeeklyData,
@@ -9,7 +9,7 @@
     formatDuration,
     getActiveTimer,
     debugTimerState,
-  } from "$lib/utils/timeManager"
+  } from "$lib/timeManager"
 
   let budgetConfig: BudgetConfig = {}
   let weeklyData: WeeklyTimeData = {

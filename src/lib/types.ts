@@ -8,24 +8,6 @@ export interface BudgetConfig {
   }
 }
 
-export interface TimeEntry {
-  category: string
-  subcategory: string
-  timestampStart: number
-  timestampEnd?: number
-}
-
-export interface WeeklyTimeData {
-  weekStart: string // ISO date string of Monday
-  entries: TimeEntry[]
-  activeTimer: {
-    category: string
-    subcategory: string
-    eventName: string
-    startTime: number // timestamp
-  } | null
-}
-
 export interface CategoryProgress {
   category: string
   subcategory: string

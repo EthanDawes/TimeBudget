@@ -1,4 +1,4 @@
-import type { BudgetConfig, WeeklyTimeData, TimeEntry, CategoryProgress } from "../types"
+import type { BudgetConfig, WeeklyTimeData, TimeEntry, CategoryProgress } from "./types"
 
 const STORAGE_KEYS = {
   BUDGET_CONFIG: "timeBudget_config",
