@@ -11,7 +11,6 @@ export interface BudgetConfig {
 export interface CategoryProgress {
   category: string
   subcategory: string
-  eventName: string
   budgeted: number // in minutes
   used: number // in minutes
   percentage: number

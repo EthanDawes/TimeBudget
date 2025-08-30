@@ -5,11 +5,11 @@ export interface TimeEntry {
   category: string
   subcategory: string
   timestampStart: number
-  timestampEnd?: number
+  duration?: number
 }
 
 const db = new Dexie("FriendsDatabase") as Dexie & {
-  friends: EntityTable<
+  timeEntries: EntityTable<
     TimeEntry,
     "id" // primary key "id" (for the typings only)
   >
@@ -17,8 +17,7 @@ const db = new Dexie("FriendsDatabase") as Dexie & {
 
 // Schema declaration:
 db.version(1).stores({
-  friends: "++id, category, subcategory, timestampStart", // primary key "id" (for the runtime!)
+  timeEntries: "++id, category, [category+subcategory], timestampStart", // primary key "id" (for the runtime!)
 })
 
-export type { TimeEntry }
 export { db }
