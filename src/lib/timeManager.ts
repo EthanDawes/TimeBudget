@@ -8,6 +8,9 @@ const STORAGE_KEYS = {
   WEEKLY_DATA: "timeBudget_weeklyData",
 }
 
+// { Category and CategorySubcategory (concatenated): spent time }
+type AccumulatedTime = Record<string, number>
+
 // Get the start of the current week (Monday)
 export function getWeekStart(): Date {
   const now = new Date()
@@ -57,12 +60,7 @@ export async function activeTimer() {
   return db.timeEntries.orderBy(":id").last()
 }
 
-/*export async function getSpentWeekCatTime(timeEntries: TimeEntry[], name: [string] | [string, string]) {
-  const [category, subcategory] = name
-  return timeEntries.filter(timeEntry => timeEntry.category === category && (!subcategory || timeEntry.subcategory === subcategory))
-}*/
-
-export function accumulateTime(entries: TimeEntry[]): Record<string, number> {
+export function accumulateTime(entries: TimeEntry[]): AccumulatedTime {
   // sum by category
   const byCategory = _(entries)
     .groupBy("category")
@@ -80,4 +78,12 @@ export function accumulateTime(entries: TimeEntry[]): Record<string, number> {
 
 export function getUnallocatedTime(budget: BudgetConfig) {
   return 7 * DAY - Object.values(budget).reduce((acc, cat) => acc + cat.time, 0)
+}
+
+export function calculateOverage(budget: BudgetConfig, accumulatedTime: AccumulatedTime) {
+  let overage = 0
+  for (const [categoryName, category] of Object.entries(budget)) {
+    overage += Math.max(0, accumulatedTime[categoryName] - category.time)
+  }
+  return overage
 }

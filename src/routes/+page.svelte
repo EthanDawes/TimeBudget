@@ -2,6 +2,7 @@
   import { fmtDuration } from "$lib/time"
   import {
     accumulateTime,
+    calculateOverage,
     getUnallocatedTime,
     loadBudgetConfig,
     loadWeeklyData,
@@ -31,4 +32,9 @@
   {/each}
 {/each}
 
-<div>Unallocated time: {fmtDuration(unallocatedTime)}</div>
+<LabeledProgress
+  spent={accumulatedTime.then((res) => calculateOverage(budget, res))}
+  budget={unallocatedTime}
+>
+  <h2 class="font-bold">Unallocated time</h2>
+</LabeledProgress>
