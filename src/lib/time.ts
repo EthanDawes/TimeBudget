@@ -22,3 +22,5 @@ export function getWeekStart(): number {
   monday.setHours(0, 0, 0, 0)
   return monday.getTime() * MILLISECOND
 }
+
+export const nowMinutes = () => Math.floor(Date.now() * MILLISECOND)

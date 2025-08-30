@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation"
-  import { loadBudgetConfig, saveBudgetConfig } from "$lib/timeManager"
+  import { loadBudgetConfig, saveBudgetConfig } from "$lib/budgetManager"
   import { resolve } from "$app/paths"
 
   let config = $state(JSON.stringify(loadBudgetConfig(), null, 2))

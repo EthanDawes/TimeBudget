@@ -1,5 +1,5 @@
 import { db, type TimeEntry } from "./db"
-import { DAY, getWeekStart, MILLISECOND } from "./time"
+import { DAY, getWeekStart, nowMinutes } from "./time"
 import _ from "lodash"
 
 const STORAGE_KEYS = {
@@ -19,8 +19,6 @@ export interface BudgetConfig {
     }
   }
 }
-
-const nowMinutes = () => Math.floor(Date.now() * MILLISECOND)
 
 // Load budget configuration from localStorage
 export function loadBudgetConfig(): BudgetConfig {
@@ -95,7 +93,7 @@ export async function finishTask() {
     return
   }
   console.assert(!task.duration) // Warn if trying to double-stop an entry
-  db.timeEntries.update(task.id, { duration: nowMinutes() - task.timestampStart })
+  await db.timeEntries.update(task.id, { duration: nowMinutes() - task.timestampStart })
 }
 
 export function exportSpentTime() {
