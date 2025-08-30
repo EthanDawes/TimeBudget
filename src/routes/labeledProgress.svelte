@@ -5,20 +5,17 @@
 
   interface ProgressProps {
     children: Snippet<[]>
-    spent: Promise<number>
+    spent: number
     budget: number
     style?: string
     onclick?: MouseEventHandler<HTMLDivElement>
   }
 
   let { children, spent, budget, style = "", onclick }: ProgressProps = $props()
-
-  let spentResolved = $state(0)
-  spent.then((res) => (spentResolved = res))
 </script>
 
 <div class={"relative w-full " + style} {onclick} role={onclick ? "button" : undefined}>
-  <progress value={spentResolved} max={budget} class="progress-bar h-8 w-full appearance-none"
+  <progress value={spent} max={budget} class="progress-bar h-8 w-full appearance-none"
   ></progress>
   <div
     class="pointer-events-none absolute inset-0 flex items-center justify-between px-3 font-medium text-gray-800"
@@ -27,7 +24,7 @@
       {@render children?.()}
     </div>
     <div class="flex-shrink-0">
-      {fmtDuration(spentResolved)} / {fmtDuration(budget)}
+      {fmtDuration(spent)} / {fmtDuration(budget)}
     </div>
   </div>
 </div>
