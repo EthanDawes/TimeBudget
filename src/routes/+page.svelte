@@ -1,13 +1,12 @@
 <script lang="ts">
-  import { fmtDuration } from "$lib/time"
   import {
     accumulateTime,
     calculateOverage,
     getUnallocatedTime,
     loadBudgetConfig,
     loadWeeklyData,
-  } from "$lib/timeManager"
-  import LabeledProgress from "./labeledProgress.svelte"
+  } from "$lib/budgetManager"
+  import LabeledProgress from "./LabeledProgress.svelte"
 
   const budget = loadBudgetConfig()
   const accumulatedTime = loadWeeklyData().then((data) => accumulateTime(data))
@@ -26,6 +25,8 @@
     <LabeledProgress
       spent={accumulatedTime.then((res) => res[categoryName + subcategoryName] ?? 0)}
       budget={subcategoryBudget}
+      style="cursor-pointer"
+      onclick={}
     >
       {subcategoryName}
     </LabeledProgress>

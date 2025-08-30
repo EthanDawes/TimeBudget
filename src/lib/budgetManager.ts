@@ -1,6 +1,5 @@
 import { db, type TimeEntry } from "./db"
-import { DAY } from "./time"
-import type { BudgetConfig } from "./types"
+import { DAY, getWeekStart } from "./time"
 import _ from "lodash"
 
 const STORAGE_KEYS = {
@@ -11,21 +10,14 @@ const STORAGE_KEYS = {
 // { Category and CategorySubcategory (concatenated): spent time }
 type AccumulatedTime = Record<string, number>
 
-// Get the start of the current week (Monday)
-export function getWeekStart(): Date {
-  const now = new Date()
-  const day = now.getDay()
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1) // Adjust when day is Sunday
-  const monday = new Date(now.setDate(diff))
-  monday.setHours(0, 0, 0, 0)
-  return monday
-}
-
-// Check if we need to reset for a new week
-export function isNewWeek(lastWeekStart: string): boolean {
-  const currentWeekStart = getWeekStart()
-  const lastWeek = new Date(lastWeekStart)
-  return currentWeekStart.getTime() !== lastWeek.getTime()
+export interface BudgetConfig {
+  [category: string]: {
+    // Total budgeted time for this category. Can be larger than the sum of subcategories to allow for wiggle room
+    time: number
+    subcategories: {
+      [subcategory: string]: number
+    }
+  }
 }
 
 // Load budget configuration from localStorage
@@ -83,7 +75,7 @@ export function getUnallocatedTime(budget: BudgetConfig) {
 export function calculateOverage(budget: BudgetConfig, accumulatedTime: AccumulatedTime) {
   let overage = 0
   for (const [categoryName, category] of Object.entries(budget)) {
-    overage += Math.max(0, accumulatedTime[categoryName] - category.time)
+    overage += Math.max(0, (accumulatedTime[categoryName] ?? 0) - category.time)
   }
   return overage
 }

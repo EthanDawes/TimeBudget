@@ -1,18 +1,23 @@
 <script lang="ts">
   import { fmtDuration } from "$lib/time"
   import type { Snippet } from "svelte"
+  import type { MouseEventHandler } from "svelte/elements"
 
-  let {
-    children,
-    spent,
-    budget,
-  }: { children: Snippet<[]>; spent: Promise<number>; budget: number } = $props()
+  interface ProgressProps {
+    children: Snippet<[]>
+    spent: Promise<number>
+    budget: number
+    style?: string
+    onclick?: MouseEventHandler<HTMLDivElement>
+  }
+
+  let { children, spent, budget, style = "", onclick = () => {} }: ProgressProps = $props()
 
   let spentResolved = $state(0)
   spent.then((res) => (spentResolved = res))
 </script>
 
-<div class="relative w-full">
+<div class={"relative w-full " + style} {onclick}>
   <progress value={spentResolved} max={budget} class="progress-bar h-8 w-full appearance-none"
   ></progress>
   <div
