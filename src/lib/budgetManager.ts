@@ -8,7 +8,7 @@ const STORAGE_KEYS = {
 }
 
 // { Category and CategorySubcategory (concatenated): spent time }
-type AccumulatedTime = Record<string, number>
+export type AccumulatedTime = Record<string, number>
 
 export interface BudgetConfig {
   [category: string]: {
@@ -50,7 +50,7 @@ export async function loadWeeklyData() {
   return db.timeEntries.where("timestampStart").above(getWeekStart()).toArray()
 }
 
-export async function activeTimer() {
+export function activeTimer() {
   return db.timeEntries.orderBy(":id").last()
 }
 
@@ -82,8 +82,8 @@ export function calculateOverage(budget: BudgetConfig, accumulatedTime: Accumula
   return overage
 }
 
-export function startNewTask(category: string, subcategory: string) {
-  db.timeEntries.add({ category, subcategory, timestampStart: nowMinutes() })
+export async function startNewTask(category: string, subcategory: string) {
+  await db.timeEntries.add({ category, subcategory, timestampStart: nowMinutes() })
 }
 
 export async function finishTask() {

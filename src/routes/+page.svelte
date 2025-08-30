@@ -1,24 +1,33 @@
 <script lang="ts">
   import {
     accumulateTime,
+    activeTimer,
     calculateOverage,
     finishTask,
     getUnallocatedTime,
     loadBudgetConfig,
     loadWeeklyData,
     startNewTask,
+    type AccumulatedTime,
   } from "$lib/budgetManager"
   import LabeledProgress from "./LabeledProgress.svelte"
 
   const budget = loadBudgetConfig()
-  let accumulatedTime = $state(loadWeeklyData().then((data) => accumulateTime(data)))
-  let unallocatedTime = $state(getUnallocatedTime(budget))
+  let accumulatedTime = $state(Promise.resolve({} as AccumulatedTime))
+  let unallocatedTime = $state(0)
+  let currentTask = $state("")
 
-  function switchTask(category: string, subcategory: string) {
-    finishTask()
-    startNewTask(category, subcategory)
+  function setState() {
     accumulatedTime = loadWeeklyData().then((data) => accumulateTime(data))
     unallocatedTime = getUnallocatedTime(budget)
+    activeTimer().then(res => currentTask = (res?.category ?? "") + (res?.subcategory ?? ""))
+  }
+  setState()
+
+  async function switchTask(category: string, subcategory: string) {
+    await finishTask()
+    await startNewTask(category, subcategory)
+    setState()
   }
 </script>
 
@@ -37,6 +46,9 @@
       style="cursor-pointer"
       onclick={switchTask.bind(null, categoryName, subcategoryName)}
     >
+      {#if currentTask === categoryName + subcategoryName}
+        ▶️
+      {/if}
       {subcategoryName}
     </LabeledProgress>
   {/each}

@@ -11,13 +11,13 @@
     onclick?: MouseEventHandler<HTMLDivElement>
   }
 
-  let { children, spent, budget, style = "", onclick = () => {} }: ProgressProps = $props()
+  let { children, spent, budget, style = "", onclick }: ProgressProps = $props()
 
   let spentResolved = $state(0)
   spent.then((res) => (spentResolved = res))
 </script>
 
-<div class={"relative w-full " + style} {onclick}>
+<div class={"relative w-full " + style} {onclick} role={onclick ? "button" : undefined}>
   <progress value={spentResolved} max={budget} class="progress-bar h-8 w-full appearance-none"
   ></progress>
   <div

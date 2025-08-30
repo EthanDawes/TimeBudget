@@ -14,11 +14,11 @@ export function fmtDuration(minutes: number) {
 }
 
 /** Get the start of the current week (Monday) */
-export function getWeekStart(): Date {
+export function getWeekStart(): number {
   const now = new Date()
   const day = now.getDay()
   const diff = now.getDate() - day + (day === 0 ? -6 : 1) // Adjust when day is Sunday
   const monday = new Date(now.setDate(diff))
   monday.setHours(0, 0, 0, 0)
-  return monday
+  return monday.getTime() * MILLISECOND
 }
