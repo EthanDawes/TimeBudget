@@ -8,7 +8,7 @@ export interface TimeEntry {
   duration?: number
 }
 
-const db = new Dexie("FriendsDatabase") as Dexie & {
+const db = new Dexie("TimeBudgetDb") as Dexie & {
   timeEntries: EntityTable<
     TimeEntry,
     "id" // primary key "id" (for the typings only)

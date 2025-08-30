@@ -1,5 +1,5 @@
 import { db, type TimeEntry } from "./db"
-import { DAY, getWeekStart } from "./time"
+import { DAY, getWeekStart, MILLISECOND } from "./time"
 import _ from "lodash"
 
 const STORAGE_KEYS = {
@@ -19,6 +19,8 @@ export interface BudgetConfig {
     }
   }
 }
+
+const nowMinutes = () => Math.floor(Date.now() * MILLISECOND)
 
 // Load budget configuration from localStorage
 export function loadBudgetConfig(): BudgetConfig {
@@ -78,4 +80,24 @@ export function calculateOverage(budget: BudgetConfig, accumulatedTime: Accumula
     overage += Math.max(0, (accumulatedTime[categoryName] ?? 0) - category.time)
   }
   return overage
+}
+
+export function startNewTask(category: string, subcategory: string) {
+  db.timeEntries.add({ category, subcategory, timestampStart: nowMinutes() })
+}
+
+export async function finishTask() {
+  const task = await activeTimer()
+  if (!task) {
+    console.warn(
+      "Stopping nonexistant task. This should only happen once, before any time entries are made",
+    )
+    return
+  }
+  console.assert(!task.duration) // Warn if trying to double-stop an entry
+  db.timeEntries.update(task.id, { duration: nowMinutes() - task.timestampStart })
+}
+
+export function exportSpentTime() {
+  // TODO
 }
