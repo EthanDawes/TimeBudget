@@ -44,7 +44,7 @@
   {@html webManifest}
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 p-4">
+<div class="min-h-dvh bg-gray-50 p-4">
   <div class="mx-auto max-w-4xl">
     {@render children?.()}
   </div>
