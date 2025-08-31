@@ -1,7 +1,8 @@
 <script lang="ts">
   import "../app.css"
-  import favicon from "$lib/assets/icon.png"
+  // import favicon from "$lib/assets/icon.png"
   import { pwaInfo } from "virtual:pwa-info"
+  import { pwaAssetsHead } from "virtual:pwa-assets/head"
   import { onMount } from "svelte"
 
   // Adapted from https://vite-pwa-org.netlify.app/frameworks/sveltekit.html
@@ -25,17 +26,26 @@
     }
   })
 
-  // Maybe I'm crazy but Svelte 5 syntax didn't seem to work
-  $: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : ""
+  const { children } = $props()
+
+  // Adapted from https://github.com/vite-pwa/sveltekit/tree/de3bd8e20458e77409c0786996a2defd82e39530/examples/sveltekit-ts-assets-generator
+  // Couldn't automaticly generate icons, so must manually
+  const webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : "")
 </script>
 
 <svelte:head>
-  <link rel="icon" href={favicon} />
-  {@html webManifestLink}
+  {#if pwaAssetsHead.themeColor}
+    <meta name="theme-color" content={pwaAssetsHead.themeColor.content} />
+  {/if}
+  {#each pwaAssetsHead.links as link}
+    <link {...link} />
+  {/each}
+
+  {@html webManifest}
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 p-4">
   <div class="mx-auto max-w-4xl">
-    <slot />
+    {@render children?.()}
   </div>
 </div>
