@@ -43,7 +43,7 @@
   </p>
 {/if}
 
-<div class="flex flex-col gap-2">
+<div class="flex flex-col gap-5">
   {#each Object.entries(budget) as [categoryName, category]}
     <div class="block">
       <LabeledProgress spent={accumulatedTime[categoryName] ?? 0} budget={category.time}>
