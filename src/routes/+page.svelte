@@ -43,29 +43,33 @@
   </p>
 {/if}
 
-{#each Object.entries(budget) as [categoryName, category]}
-  <LabeledProgress spent={accumulatedTime[categoryName] ?? 0} budget={category.time}>
-    <h2 class="font-bold">{categoryName}</h2>
-  </LabeledProgress>
+<div class="flex flex-col gap-2">
+  {#each Object.entries(budget) as [categoryName, category]}
+    <div class="block">
+      <LabeledProgress spent={accumulatedTime[categoryName] ?? 0} budget={category.time}>
+        <h2 class="font-bold">{categoryName}</h2>
+      </LabeledProgress>
 
-  {#each Object.entries(category.subcategories) as [subcategoryName, subcategoryBudget]}
-    <LabeledProgress
-      spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
-      budget={subcategoryBudget}
-      style="cursor-pointer"
-      onclick={switchTask.bind(null, categoryName, subcategoryName)}
-    >
-      {#if currentTask?.category === categoryName && currentTask?.subcategory === subcategoryName}
-        ▶️
-      {/if}
-      {subcategoryName}
-    </LabeledProgress>
+      {#each Object.entries(category.subcategories) as [subcategoryName, subcategoryBudget]}
+        <LabeledProgress
+          spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
+          budget={subcategoryBudget}
+          style="cursor-pointer"
+          onclick={switchTask.bind(null, categoryName, subcategoryName)}
+        >
+          {#if currentTask?.category === categoryName && currentTask?.subcategory === subcategoryName}
+            ▶️
+          {/if}
+          {subcategoryName}
+        </LabeledProgress>
+      {/each}
+    </div>
   {/each}
-{/each}
 
-<LabeledProgress spent={calculateOverage(budget, accumulatedTime)} budget={unallocatedTime}>
-  <h2 class="font-bold">Unallocated time</h2>
-</LabeledProgress>
+  <LabeledProgress spent={calculateOverage(budget, accumulatedTime)} budget={unallocatedTime}>
+    <h2 class="font-bold">Unallocated time</h2>
+  </LabeledProgress>
+</div>
 
 <div class="text-center">
   <a href={resolve("/settings")}>
