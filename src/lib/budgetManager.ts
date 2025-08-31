@@ -95,7 +95,3 @@ export async function finishTask() {
   console.assert(!task.duration) // Warn if trying to double-stop an entry
   await db.timeEntries.update(task.id, { duration: nowMinutes() - task.timestampStart })
 }
-
-export function exportSpentTime() {
-  // TODO
-}

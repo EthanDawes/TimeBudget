@@ -10,6 +10,7 @@
     startNewTask,
     type AccumulatedTime,
   } from "$lib/budgetManager"
+  import { exportSpentTime } from "$lib/db"
   import LabeledProgress from "./LabeledProgress.svelte"
   import { resolve } from "$app/paths"
   import { fmtDuration, nowMinutes } from "$lib/time"
@@ -70,5 +71,5 @@
   <a href={resolve("/settings")}>
     <button class="border">Settings</button>
   </a>
-  <button class="border">Export</button>
+  <button class="border" onclick={exportSpentTime}>Export</button>
 </div>

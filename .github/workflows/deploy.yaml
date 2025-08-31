@@ -25,7 +25,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
 
       - name: Setup pnpm & install deps
         uses: pnpm/action-setup@v2
@@ -34,7 +34,7 @@ jobs:
           run_install: true
       - name: Build 🔧
         env:
-          BASE_PATH: '/${{ github.event.repository.name }}'
+          BASE_PATH: "/${{ github.event.repository.name }}"
         run: |
           npm run build
       - name: Upload artifact
