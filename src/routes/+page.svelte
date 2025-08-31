@@ -47,7 +47,7 @@
   {#each Object.entries(budget) as [categoryName, category]}
     <div class="block">
       <LabeledProgress spent={accumulatedTime[categoryName] ?? 0} budget={category.time}>
-        <h2 class="font-bold">{categoryName}</h2>
+        <h2 class="font-bold text-xl">{categoryName}</h2>
       </LabeledProgress>
 
       {#each Object.entries(category.subcategories) as [subcategoryName, subcategoryBudget]}
