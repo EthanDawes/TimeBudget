@@ -254,15 +254,8 @@
 
     <div
       class="block {isSourceCategory || isTargetCategory || hasSelectedSubcategory
-        ? 'sticky rounded border bg-white p-2'
+        ? 'rounded border bg-white p-2'
         : ''}"
-      style={isSourceCategory
-        ? "top: 180px; z-index: 40;"
-        : isTargetCategory
-          ? "top: 220px; z-index: 39;"
-          : hasSelectedSubcategory
-            ? "top: 260px; z-index: 38;"
-            : ""}
     >
       <LabeledProgress
         spent={categoryOverages[categoryName] ?? 0}
@@ -300,13 +293,8 @@
 
         <div
           class={isSourceSubcategory || isTargetSubcategory
-            ? "sticky ml-2 rounded border bg-white p-1"
+            ? "ml-2 rounded border bg-white p-1"
             : ""}
-          style={isSourceSubcategory
-            ? "top: 300px; z-index: 37;"
-            : isTargetSubcategory
-              ? "top: 340px; z-index: 36;"
-              : ""}
         >
           <LabeledProgress
             spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
