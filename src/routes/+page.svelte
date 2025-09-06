@@ -2,6 +2,7 @@
   import {
     accumulateTime,
     activeTimer,
+    calculateCategoryOverage,
     calculateOverage,
     finishTask,
     getUnallocatedTime,
@@ -18,11 +19,15 @@
 
   const budget = loadBudgetConfig()
   let accumulatedTime = $state({} as AccumulatedTime)
+  let categoryOverages = $state({} as Record<string, number>)
   let unallocatedTime = $state(0)
   let currentTask = $state<TimeEntry>()
 
   function setState() {
-    loadWeeklyData().then((data) => (accumulatedTime = accumulateTime(data)))
+    loadWeeklyData().then((data) => {
+      accumulatedTime = accumulateTime(data)
+      categoryOverages = calculateCategoryOverage(budget, accumulatedTime)
+    })
     unallocatedTime = getUnallocatedTime(budget)
     activeTimer().then((res) => (currentTask = res))
   }
@@ -46,8 +51,12 @@
 <div class="flex flex-col gap-5">
   {#each Object.entries(budget) as [categoryName, category]}
     <div class="block">
-      <LabeledProgress spent={accumulatedTime[categoryName] ?? 0} budget={category.time}>
-        <h2 class="font-bold text-xl">{categoryName}</h2>
+      <LabeledProgress
+        spent={categoryOverages[categoryName] ?? 0}
+        budget={category.time -
+          Object.values(category.subcategories).reduce((sum, budget) => sum + budget, 0)}
+      >
+        <h2 class="text-xl font-bold">{categoryName}</h2>
       </LabeledProgress>
 
       {#each Object.entries(category.subcategories) as [subcategoryName, subcategoryBudget]}

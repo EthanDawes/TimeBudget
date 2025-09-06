@@ -80,6 +80,21 @@ export function calculateOverage(budget: BudgetConfig, accumulatedTime: Accumula
   return overage
 }
 
+export function calculateCategoryOverage(budget: BudgetConfig, accumulatedTime: AccumulatedTime) {
+  const categoryOverages: Record<string, number> = {}
+
+  for (const [categoryName, category] of Object.entries(budget)) {
+    const totalSubcategoryBudget = Object.values(category.subcategories).reduce(
+      (sum, budget) => sum + budget,
+      0,
+    )
+    const totalSpent = accumulatedTime[categoryName] ?? 0
+    categoryOverages[categoryName] = Math.max(0, totalSpent - totalSubcategoryBudget)
+  }
+
+  return categoryOverages
+}
+
 export async function startNewTask(category: string, subcategory: string) {
   await db.timeEntries.add({ category, subcategory, timestampStart: nowMinutes() })
 }
