@@ -41,10 +41,11 @@
 </script>
 
 {#if currentTask}
-  <p class="pb-1.5">
-    {currentTask.subcategory} has been running for
-    {fmtDuration(nowMinutes() - currentTask.timestampStart)}. Incorrect?
-    <button class="border">Split among multiple categories</button>
+  <p class="flex justify-around pb-1.5">
+    {currentTask.subcategory}
+    {fmtDuration(nowMinutes() - currentTask.timestampStart)}
+    <button class="border">Split time</button>
+    <button class="border">Realloc</button>
   </p>
 {/if}
 
