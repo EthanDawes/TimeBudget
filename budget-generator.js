@@ -67,44 +67,11 @@ const minutesPerWeek = 7 * DAY
 const budgetedTotal = Object.values(budget).reduce((acc, cat) => acc + cat.time, 0)
 console.log("you have", (minutesPerWeek - budgetedTotal) / HOUR, "unallocated hours")
 
-// AI
+// AI below
 const palette = [
   '#3366cc', '#dc3912', '#ff9900', '#109618', '#990099',
   '#0099c6', '#dd4477', '#66aa00', '#b82e2e', '#316395'
 ];
-/*function budgetToPieConfig(budget) {
-  const { labels, data, colors } = Object.entries(budget).reduce(
-    (acc, [category, { subcategories }], i) => {
-      const color = palette[i % palette.length];
-      Object.entries(subcategories).forEach(([subcat, value]) => {
-        acc.labels.push(`${category}: ${subcat}`);
-        acc.data.push(value);
-        acc.colors.push(color);
-      });
-      return acc;
-    },
-    { labels: [], data: [], colors: [] }
-  );
-
-  return {
-    type: 'pie',
-    data: {
-      labels,
-      datasets: [
-        {
-          data,
-          backgroundColor: colors
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'right' }
-      }
-    }
-  };
-}*/
 
 function generatePieChartConfig(budgetConfig) {
   const labels = [];
