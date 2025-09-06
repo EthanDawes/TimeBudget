@@ -79,6 +79,10 @@ export function activeTimer() {
   return db.timeEntries.orderBy(":id").last()
 }
 
+export async function activeTimers() {
+  return db.timeEntries.filter((entry) => entry.duration === undefined).toArray()
+}
+
 export function accumulateTime(entries: TimeEntry[]): AccumulatedTime {
   // sum by category
   const byCategory = _(entries)
@@ -136,6 +140,47 @@ export async function finishTask() {
   }
   console.assert(!task.duration) // Warn if trying to double-stop an entry
   await db.timeEntries.update(task.id, { duration: nowMinutes() - task.timestampStart })
+}
+
+export async function finishTaskById(taskId: number) {
+  const task = await db.timeEntries.get(taskId)
+  if (!task) {
+    console.warn("Trying to stop a task that doesn't exist")
+    return
+  }
+  if (task.duration) {
+    console.warn("Trying to stop a task that's already stopped")
+    return
+  }
+
+  // Check if this is the last running task - if so, don't allow stopping it
+  const runningTasks = await activeTimers()
+  if (runningTasks.length <= 1) {
+    console.warn("Cannot stop the last running task - at least one task must always be running")
+    return
+  }
+
+  await db.timeEntries.update(taskId, { duration: nowMinutes() - task.timestampStart })
+}
+
+export async function switchTaskConcurrent(category: string, subcategory: string) {
+  const lastTask = await activeTimer()
+
+  // If no active task, just start new one
+  if (!lastTask || lastTask.duration) {
+    await startNewTask(category, subcategory)
+    return
+  }
+
+  // If last task was started within 30 seconds (0.5 minutes in our time units), start concurrent task
+  const timeSinceLastStart = nowMinutes() - lastTask.timestampStart
+  if (timeSinceLastStart <= 0.5) {
+    await startNewTask(category, subcategory)
+  } else {
+    // Otherwise, finish the last task and start new one
+    await finishTask()
+    await startNewTask(category, subcategory)
+  }
 }
 
 // Reallocate time between categories/subcategories

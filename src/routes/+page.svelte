@@ -2,9 +2,12 @@
   import {
     accumulateTime,
     activeTimer,
+    activeTimers,
     calculateCategoryOverage,
     calculateOverage,
     finishTask,
+    finishTaskById,
+    switchTaskConcurrent,
     getUnallocatedTime,
     loadBudgetConfig,
     loadWeeklyBudgetConfig,
@@ -27,7 +30,7 @@
   let accumulatedTime = $state({} as AccumulatedTime)
   let categoryOverages = $state({} as Record<string, number>)
   let unallocatedTime = $state(0)
-  let currentTask = $state<TimeEntry>()
+  let currentTasks = $state<TimeEntry[]>([])
   let showReallocationMode = $state(false)
   let sourceSelection = $state<{ category: string; subcategory?: string } | null>(null)
   let targetSelection = $state<{ category: string; subcategory?: string } | null>(null)
@@ -40,13 +43,17 @@
       categoryOverages = calculateCategoryOverage(budget, accumulatedTime)
     })
     unallocatedTime = getUnallocatedTime(budget)
-    activeTimer().then((res) => (currentTask = res))
+    activeTimers().then((res) => (currentTasks = res))
   }
   setState()
 
   async function switchTask(category: string, subcategory: string) {
-    await finishTask()
-    await startNewTask(category, subcategory)
+    await switchTaskConcurrent(category, subcategory)
+    setState()
+  }
+
+  async function stopSpecificTask(taskId: number) {
+    await finishTaskById(taskId)
     setState()
   }
 
@@ -63,6 +70,17 @@
 
   function handleCategoryClick(category: string, subcategory?: string) {
     if (!showReallocationMode) {
+      // Check if this task is currently running - if so, stop it (only if more than one task is running)
+      const runningTask = currentTasks.find(
+        (task) => task.category === category && task.subcategory === subcategory,
+      )
+      if (runningTask) {
+        if (currentTasks.length > 1) {
+          stopSpecificTask(runningTask.id)
+        }
+        return
+      }
+
       // Normal timer switching behavior
       if (subcategory) {
         switchTask(category, subcategory)
@@ -232,13 +250,30 @@
   </div>
 {/if}
 
-{#if currentTask}
-  <p class="flex justify-around pb-1.5 {showReallocationMode ? 'mt-32' : ''}">
-    {currentTask.subcategory}
-    {fmtDuration(nowMinutes() - currentTask.timestampStart)}
-    <button class="border">Split time</button>
-    <button class="border" onclick={handleReallocationModeToggle}>Realloc</button>
-  </p>
+{#if currentTasks.length > 0}
+  <div class="pb-1.5 {showReallocationMode ? 'mt-32' : ''}">
+    {#each currentTasks as task}
+      <p class="mb-1 flex justify-around border-b pb-1">
+        <button
+          class="border-none bg-transparent p-0 text-blue-600 {currentTasks.length > 1
+            ? 'cursor-pointer'
+            : 'cursor-not-allowed opacity-50'}"
+          onclick={() => currentTasks.length > 1 && stopSpecificTask(task.id)}
+          disabled={currentTasks.length <= 1}
+          title={currentTasks.length <= 1
+            ? "Cannot stop the last running task - at least one task must always be active"
+            : "Click to stop this task"}
+        >
+          ▶️ {task.subcategory}
+        </button>
+        {fmtDuration(nowMinutes() - task.timestampStart)}
+        <button class="border">Split time</button>
+      </p>
+    {/each}
+    <div class="text-center">
+      <button class="border" onclick={handleReallocationModeToggle}>Realloc</button>
+    </div>
+  </div>
 {/if}
 
 <div class="flex flex-col gap-5 {showReallocationMode ? 'mt-8' : ''}">
@@ -304,14 +339,19 @@
                 ? "cursor-pointer"
                 : "cursor-not-allowed opacity-50"
               : "cursor-pointer"}
-            onclick={showReallocationMode
-              ? subcategoryAvailable > 0
-                ? () => handleCategoryClick(categoryName, subcategoryName)
-                : undefined
-              : () => switchTask(categoryName, subcategoryName)}
+            onclick={() => handleCategoryClick(categoryName, subcategoryName)}
           >
-            {#if !showReallocationMode && currentTask?.category === categoryName && currentTask?.subcategory === subcategoryName}
-              ▶️
+            {#if !showReallocationMode}
+              {@const isRunning = currentTasks.some(
+                (task) => task.category === categoryName && task.subcategory === subcategoryName,
+              )}
+              {#if isRunning}
+                {#if currentTasks.length > 1}
+                  ▶️
+                {:else}
+                  🔒
+                {/if}
+              {/if}
             {/if}
             {#if isSourceSubcategory}
               🔵
