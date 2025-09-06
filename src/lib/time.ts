@@ -24,3 +24,23 @@ export function getWeekStart(): number {
 }
 
 export const nowMinutes = () => Math.floor(Date.now() * MILLISECOND)
+
+// Parse time string in format like "1h 30m", "45m", "2h"
+export function parseTimeString(timeStr: string): number {
+  const trimmed = timeStr.trim().toLowerCase()
+  let totalMinutes = 0
+
+  // Match hours
+  const hoursMatch = trimmed.match(/(\d+)h/)
+  if (hoursMatch) {
+    totalMinutes += parseInt(hoursMatch[1]) * 60
+  }
+
+  // Match minutes
+  const minutesMatch = trimmed.match(/(\d+)m/)
+  if (minutesMatch) {
+    totalMinutes += parseInt(minutesMatch[1])
+  }
+
+  return totalMinutes
+}

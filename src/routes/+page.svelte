@@ -7,21 +7,26 @@
     finishTask,
     getUnallocatedTime,
     loadBudgetConfig,
+    loadWeeklyBudgetConfig,
+    saveWeeklyBudgetConfig,
     loadWeeklyData,
     startNewTask,
     type AccumulatedTime,
+    type BudgetConfig,
   } from "$lib/budgetManager"
   import { exportSpentTime } from "$lib/db"
   import LabeledProgress from "./LabeledProgress.svelte"
+  import ReallocationModal from "./ReallocationModal.svelte"
   import { resolve } from "$app/paths"
   import { fmtDuration, nowMinutes } from "$lib/time"
   import type { TimeEntry } from "$lib/db"
 
-  const budget = loadBudgetConfig()
+  let budget = $state<BudgetConfig>(loadWeeklyBudgetConfig())
   let accumulatedTime = $state({} as AccumulatedTime)
   let categoryOverages = $state({} as Record<string, number>)
   let unallocatedTime = $state(0)
   let currentTask = $state<TimeEntry>()
+  let showReallocationModal = $state(false)
 
   function setState() {
     loadWeeklyData().then((data) => {
@@ -38,6 +43,12 @@
     await startNewTask(category, subcategory)
     setState()
   }
+
+  function handleReallocation(newBudget: BudgetConfig) {
+    budget = newBudget
+    saveWeeklyBudgetConfig(newBudget)
+    setState() // Refresh the accumulated time and overages
+  }
 </script>
 
 {#if currentTask}
@@ -45,7 +56,7 @@
     {currentTask.subcategory}
     {fmtDuration(nowMinutes() - currentTask.timestampStart)}
     <button class="border">Split time</button>
-    <button class="border">Realloc</button>
+    <button class="border" onclick={() => (showReallocationModal = true)}>Realloc</button>
   </p>
 {/if}
 
@@ -75,6 +86,14 @@
       {/each}
     </div>
   {/each}
+
+  <ReallocationModal
+    open={showReallocationModal}
+    {budget}
+    {accumulatedTime}
+    onClose={() => (showReallocationModal = false)}
+    onRealloc={handleReallocation}
+  />
 
   <LabeledProgress spent={calculateOverage(budget, accumulatedTime)} budget={unallocatedTime}>
     <h2 class="font-bold">Unallocated time</h2>
