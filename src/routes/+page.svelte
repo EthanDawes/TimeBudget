@@ -17,7 +17,6 @@
   import { exportSpentTime } from "$lib/db"
   import LabeledProgress from "./LabeledProgress.svelte"
   import ReallocationModal from "./ReallocationModal.svelte"
-  import CategoryList from "./CategoryList.svelte"
   import { resolve } from "$app/paths"
   import { fmtDuration, nowMinutes } from "$lib/time"
   import type { TimeEntry } from "$lib/db"
@@ -61,19 +60,45 @@
   </p>
 {/if}
 
-<CategoryList {budget} {accumulatedTime} {currentTask} onItemClick={switchTask} />
+<div class="flex flex-col gap-5">
+  {#each Object.entries(budget) as [categoryName, category]}
+    <div class="block">
+      <LabeledProgress
+        spent={categoryOverages[categoryName] ?? 0}
+        budget={category.time -
+          Object.values(category.subcategories).reduce((sum, budget) => sum + budget, 0)}
+      >
+        <h2 class="text-xl font-bold">{categoryName}</h2>
+      </LabeledProgress>
 
-<ReallocationModal
-  open={showReallocationModal}
-  {budget}
-  {accumulatedTime}
-  onClose={() => (showReallocationModal = false)}
-  onRealloc={handleReallocation}
-/>
+      {#each Object.entries(category.subcategories) as [subcategoryName, subcategoryBudget]}
+        <LabeledProgress
+          spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
+          budget={subcategoryBudget}
+          style="cursor-pointer"
+          onclick={switchTask.bind(null, categoryName, subcategoryName)}
+        >
+          {#if currentTask?.category === categoryName && currentTask?.subcategory === subcategoryName}
+            ▶️
+          {/if}
+          {subcategoryName}
+        </LabeledProgress>
+      {/each}
+    </div>
+  {/each}
 
-<LabeledProgress spent={calculateOverage(budget, accumulatedTime)} budget={unallocatedTime}>
-  <h2 class="font-bold">Unallocated time</h2>
-</LabeledProgress>
+  <ReallocationModal
+    open={showReallocationModal}
+    {budget}
+    {accumulatedTime}
+    onClose={() => (showReallocationModal = false)}
+    onRealloc={handleReallocation}
+  />
+
+  <LabeledProgress spent={calculateOverage(budget, accumulatedTime)} budget={unallocatedTime}>
+    <h2 class="font-bold">Unallocated time</h2>
+  </LabeledProgress>
+</div>
 
 <div class="text-center">
   <a href={resolve("/settings")}>
