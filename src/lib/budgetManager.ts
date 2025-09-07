@@ -255,6 +255,25 @@ export function getAvailableTime(
   }
 }
 
+// Delete tasks that have been running for longer than 24 hours
+export async function cleanupLongRunningTasks(): Promise<void> {
+  const now = nowMinutes()
+  const runningTasks = await activeTimers()
+
+  // Find tasks that need to be deleted
+  for (const task of runningTasks) {
+    const runningTime = now - task.timestampStart
+
+    // If task has been running for more than 24 hours (DAY minutes), mark for deletion
+    if (runningTime > DAY) {
+      await db.timeEntries.delete(task.id)
+      console.log(
+        `Deleted long-running task: ${task.category}/${task.subcategory} (running for ${fmtDuration(runningTime)})`,
+      )
+    }
+  }
+}
+
 // Validate if a reallocation is possible
 export function validateReallocation(
   budget: BudgetConfig,

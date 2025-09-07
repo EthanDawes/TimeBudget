@@ -17,6 +17,7 @@
     getAvailableTime,
     reallocateTime,
     validateReallocation,
+    cleanupLongRunningTasks,
     type AccumulatedTime,
     type BudgetConfig,
   } from "$lib/budgetManager"
@@ -37,7 +38,10 @@
   let reallocationAmount = $state(0)
   let reallocationAmountText = $state("")
 
-  function setState() {
+  async function setState() {
+    // Clean up any tasks that have been running for more than 24 hours
+    await cleanupLongRunningTasks()
+
     loadWeeklyData().then((data) => {
       accumulatedTime = accumulateTime(data)
       categoryOverages = calculateCategoryOverage(budget, accumulatedTime)
