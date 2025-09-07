@@ -18,11 +18,14 @@
     reallocateTime,
     validateReallocation,
     cleanupLongRunningTasks,
+    splitTime,
     type AccumulatedTime,
     type BudgetConfig,
+    type SplitEntry,
   } from "$lib/budgetManager"
   import { exportSpentTime } from "$lib/db"
   import LabeledProgress from "./LabeledProgress.svelte"
+  import SplitTimeModal from "./SplitTimeModal.svelte"
   import { resolve } from "$app/paths"
   import { fmtDuration, nowMinutes, parseTimeString } from "$lib/time"
   import type { TimeEntry } from "$lib/db"
@@ -37,6 +40,7 @@
   let targetSelection = $state<{ category: string; subcategory?: string } | null>(null)
   let reallocationAmount = $state(0)
   let reallocationAmountText = $state("")
+  let showSplitTimeModal = $state(false)
 
   async function setState() {
     // Clean up any tasks that have been running for more than 24 hours
@@ -134,6 +138,12 @@
     } catch (error) {
       console.error("Error reallocating time:", error)
     }
+  }
+
+  function handleSplitTimeSubmit(splitEntries: SplitEntry[]) {
+    splitTime(splitEntries).then(() => {
+      setState()
+    })
   }
 
   function updateAmountFromText() {
@@ -272,10 +282,10 @@
           ▶️ {task.subcategory}
         </button>
         {fmtDuration(nowMinutes() - task.timestampStart)}
-        <button class="border">Split time</button>
       </p>
     {/each}
-    <div class="text-center">
+    <div class="flex justify-around">
+      <button class="border" onclick={() => (showSplitTimeModal = true)}>Split time</button>
       <button class="border" onclick={handleReallocationModeToggle}>Realloc</button>
     </div>
   </div>
@@ -384,3 +394,5 @@
   </a>
   <button class="border" onclick={exportSpentTime}>Export</button>
 </div>
+
+<SplitTimeModal {currentTasks} bind:isOpen={showSplitTimeModal} onsubmit={handleSplitTimeSubmit} />

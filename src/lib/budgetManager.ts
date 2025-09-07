@@ -304,3 +304,52 @@ export function validateReallocation(
 
   return { valid: true }
 }
+
+export interface SplitEntry {
+  id: string
+  startTime: number
+  startTimeText: string
+  category: string
+  subcategory: string
+  isConcurrent: boolean
+  endTime?: number
+  endTimeText?: string
+}
+
+// Split time entries by replacing running tasks with new time periods
+export async function splitTime(splitEntries: SplitEntry[]): Promise<void> {
+  if (splitEntries.length === 0) return
+
+  // Delete all currently running tasks (we're replacing them with split entries)
+  const runningTasks = await activeTimers()
+  for (const task of runningTasks) {
+    await db.timeEntries.delete(task.id)
+  }
+
+  // Create new time entries based on the split
+  for (let i = 0; i < splitEntries.length; i++) {
+    const entry = splitEntries[i]
+    const nextEntry = splitEntries[i + 1]
+
+    let duration: number | undefined
+
+    if (entry.isConcurrent && entry.endTime) {
+      // Concurrent task with explicit end time
+      duration = entry.endTime - entry.startTime
+    } else if (!entry.isConcurrent && nextEntry) {
+      // Sequential task - ends when next task starts
+      duration = nextEntry.startTime - entry.startTime
+    } else if (i === splitEntries.length - 1) {
+      // Last entry - leave it running (no duration)
+      duration = undefined
+    }
+
+    // Create the new time entry
+    await db.timeEntries.add({
+      category: entry.category,
+      subcategory: entry.subcategory,
+      timestampStart: entry.startTime,
+      duration: duration,
+    })
+  }
+}
