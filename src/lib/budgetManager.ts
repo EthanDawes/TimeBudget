@@ -247,8 +247,11 @@ export function getAvailableTime(
     // Available time is the minimum of subcategory available and category available
     return Math.min(subcategoryAvailable, categoryAvailable)
   } else {
-    const allocated = budget[category].time
-    return Math.max(0, allocated - spent)
+    const category_obj = budget[category]
+    const allocated_time =
+      category_obj.time -
+      Object.values(category_obj.subcategories).reduce((sum, budget) => sum + budget, 0)
+    return allocated_time - (calculateCategoryOverage(budget, accumulatedTime)[category] ?? 0)
   }
 }
 

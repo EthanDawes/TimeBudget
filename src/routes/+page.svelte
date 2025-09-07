@@ -354,11 +354,7 @@
                 (task) => task.category === categoryName && task.subcategory === subcategoryName,
               )}
               {#if isRunning}
-                {#if currentTasks.length > 1}
-                  ▶️
-                {:else}
-                  🔒
-                {/if}
+                ▶️
               {/if}
             {/if}
             {#if isSourceSubcategory}
