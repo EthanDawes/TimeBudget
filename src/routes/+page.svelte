@@ -93,16 +93,17 @@
       ? getAvailableTime(budget, accumulatedTime, category, subcategory)
       : getAvailableTime(budget, accumulatedTime, category, null)
 
-    if (availableTime <= 0) return // Can't select if no time available
-
     const selection = { category, subcategory }
 
     if (!sourceSelection) {
+      // For source selection, must have available time
+      if (availableTime <= 0) return
       sourceSelection = selection
     } else if (
       !targetSelection &&
       (sourceSelection.category !== category || sourceSelection.subcategory !== subcategory)
     ) {
+      // For target selection, can always select (even if no available time)
       targetSelection = selection
     }
   }
@@ -286,18 +287,23 @@
     {@const hasSelectedSubcategory =
       (sourceSelection?.category === categoryName && sourceSelection.subcategory) ||
       (targetSelection?.category === categoryName && targetSelection.subcategory)}
+    {@const isCategoryDisabled = showReallocationMode && !sourceSelection && categoryAvailable <= 0}
 
     <div
       class="block {isSourceCategory || isTargetCategory || hasSelectedSubcategory
         ? 'rounded border bg-white p-2'
-        : ''}"
+        : ''} {isCategoryDisabled ? 'opacity-50 grayscale' : ''}"
     >
       <LabeledProgress
         spent={categoryOverages[categoryName] ?? 0}
         budget={category.time -
           Object.values(category.subcategories).reduce((sum, budget) => sum + budget, 0)}
-        style={showReallocationMode && categoryAvailable > 0 ? "cursor-pointer" : ""}
-        onclick={showReallocationMode && categoryAvailable > 0
+        style={showReallocationMode
+          ? !sourceSelection && categoryAvailable <= 0
+            ? "cursor-not-allowed"
+            : "cursor-pointer"
+          : ""}
+        onclick={showReallocationMode && !(!sourceSelection && categoryAvailable <= 0)
           ? () => handleCategoryClick(categoryName)
           : undefined}
       >
@@ -326,18 +332,20 @@
           targetSelection?.category === categoryName &&
           targetSelection?.subcategory === subcategoryName}
 
+        {@const isDisabled = showReallocationMode && !sourceSelection && subcategoryAvailable <= 0}
+
         <div
-          class={isSourceSubcategory || isTargetSubcategory
-            ? "ml-2 rounded border bg-white p-1"
-            : ""}
+          class="{isSourceSubcategory || isTargetSubcategory
+            ? 'ml-2 rounded border bg-white p-1'
+            : ''} {isDisabled ? 'opacity-50 grayscale' : ''}"
         >
           <LabeledProgress
             spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
             budget={subcategoryBudget}
             style={showReallocationMode
-              ? subcategoryAvailable > 0
-                ? "cursor-pointer"
-                : "cursor-not-allowed opacity-50"
+              ? !sourceSelection && subcategoryAvailable <= 0
+                ? "cursor-not-allowed"
+                : "cursor-pointer"
               : "cursor-pointer"}
             onclick={() => handleCategoryClick(categoryName, subcategoryName)}
           >
