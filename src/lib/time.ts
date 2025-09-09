@@ -5,12 +5,15 @@ export const HOUR = 60 * MINUTE
 export const DAY = 24 * HOUR
 
 export function fmtDuration(minutes: number) {
-  const hours = Math.floor(minutes / HOUR)
-  const remainingMinutes = minutes % HOUR
-  let fmtStr = ""
-  if (hours) fmtStr = hours + "h "
-  if (remainingMinutes || !hours) fmtStr += remainingMinutes + "m"
-  return fmtStr
+  const sign = minutes < 0 ? "-" : ""
+  const abs = Math.abs(minutes)
+  const hours = Math.floor(abs / HOUR)
+  const remaining = abs % HOUR
+  return [
+    sign,
+    hours ? `${hours}h ` : "",
+    (remaining || !hours) ? `${remaining}m` : ""
+  ].join("")
 }
 
 /** Get the start of the current week (Monday) */
