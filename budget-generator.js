@@ -33,6 +33,7 @@ const budget = {
     El: 2 * HOUR,
     Friends: 2 * HOUR,
     "New connections": 2 * HOUR,
+    "Hack night": 3 * HOUR,
   }),
   ...Category("Coursework", PLUS(0), {
     Hw: courseworkTotal - 7 * HOUR - lectureDuration,
@@ -61,6 +62,7 @@ const budget = {
 }
 
 console.log(budget)
+console.log(JSON.stringify(budget))
 
 // Validate budget
 const minutesPerWeek = 7 * DAY
