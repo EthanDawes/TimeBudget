@@ -15,7 +15,7 @@
 
   interface SplitEntry {
     id: string
-    startTime: number
+    startTime?: number
     startTimeText: string
     category: string
     subcategory: string
@@ -28,16 +28,22 @@
   let splitEntries: SplitEntry[] = $state([])
   let modal: HTMLDialogElement
 
-  // Generate time suggestions (every 15 minutes for the next few hours)
+  // Generate time suggestions (every 15 minutes)
   function generateTimeSuggestions(
     baseTime: number,
+    isStartTime: boolean = true,
   ): Array<{ time: number; text: string; duration: string }> {
     const suggestions = []
     const now = nowMinutes()
+    const firstTaskStart = currentTasks[0]?.timestampStart || now
 
-    // Start from current time, go back 2 hours and forward 4 hours in 15-minute increments
-    for (let offset = -2 * HOUR; offset <= 4 * HOUR; offset += 15 * MINUTE) {
-      const time = now + offset
+    // For start times: don't show times before the first task or after current time
+    // For end times: show reasonable range around the base time
+    const minTime = isStartTime ? firstTaskStart : baseTime - 2 * HOUR
+    const maxTime = isStartTime ? now : baseTime + 4 * HOUR
+
+    // Generate suggestions in 15-minute increments
+    for (let time = minTime; time <= maxTime; time += 15 * MINUTE) {
       // Convert minutes-since-epoch to local time for display
       const date = new Date(time / MILLISECOND)
       const hours = date.getHours()
@@ -107,13 +113,11 @@
 
   function addEntry() {
     const lastEntry = splitEntries[splitEntries.length - 1]
-    const newStartTime =
-      lastEntry.isConcurrent && lastEntry.endTime ? lastEntry.endTime : lastEntry.startTime + HOUR
 
     const newEntry = {
       id: crypto.randomUUID(),
-      startTime: newStartTime,
-      startTimeText: formatTimeFromMinutes(newStartTime),
+      // startTime and startTimeText should both be blank
+      startTimeText: "",
       category: lastEntry.category,
       subcategory: lastEntry.subcategory,
       isConcurrent: false,
@@ -131,7 +135,9 @@
   function sortEntriesByTime() {
     // Keep the first entry in place, sort the rest by start time
     const firstEntry = splitEntries[0]
-    const restEntries = splitEntries.slice(1).sort((a, b) => a.startTime - b.startTime)
+    const restEntries = splitEntries
+      .slice(1)
+      .sort((a, b) => (a.startTime || 0) - (b.startTime || 0))
     splitEntries = [firstEntry, ...restEntries]
   }
 
@@ -140,7 +146,10 @@
 
     const entry = splitEntries[index]
     entry.startTimeText = timeText
-    entry.startTime = parseTimeToMinutes(timeText)
+
+    if (timeText.trim()) {
+      entry.startTime = parseTimeToMinutes(timeText)
+    }
 
     // Sort entries by time and trigger reactivity
     sortEntriesByTime()
@@ -149,7 +158,10 @@
   function updateEndTime(index: number, timeText: string) {
     const entry = splitEntries[index]
     entry.endTimeText = timeText
-    entry.endTime = parseTimeToMinutes(timeText)
+
+    if (timeText.trim()) {
+      entry.endTime = parseTimeToMinutes(timeText)
+    }
 
     // Update splitEntries to trigger reactivity
     splitEntries = [...splitEntries]
@@ -159,7 +171,7 @@
     const entry = splitEntries[index]
     entry.isConcurrent = !entry.isConcurrent
 
-    if (entry.isConcurrent && !entry.endTime) {
+    if (entry.isConcurrent && !entry.endTime && entry.startTime) {
       // Set default end time to 1 hour after start
       entry.endTime = entry.startTime + HOUR
       entry.endTimeText = formatTimeFromMinutes(entry.endTime)
@@ -198,6 +210,21 @@
   }
 
   function handleSubmit() {
+    // Validate that all entries have valid times
+    for (let i = 0; i < splitEntries.length; i++) {
+      const entry = splitEntries[i]
+
+      if (!entry.startTimeText?.trim()) {
+        alert(`Entry ${i + 1}: Start time cannot be empty`)
+        return
+      }
+
+      if (entry.isConcurrent && !entry.endTimeText?.trim()) {
+        alert(`Entry ${i + 1}: End time cannot be empty for concurrent tasks`)
+        return
+      }
+    }
+
     // Call the submit handler prop
     onsubmit(splitEntries)
     closeModal()
@@ -244,7 +271,7 @@
             />
             {#if index > 0}
               <datalist id={`start-times-${entry.id}`}>
-                {#each generateTimeSuggestions(entry.startTime) as suggestion}
+                {#each generateTimeSuggestions(entry.startTime || nowMinutes(), true) as suggestion}
                   <option value={suggestion.text}>{suggestion.text} {suggestion.duration}</option>
                 {/each}
               </datalist>
@@ -252,9 +279,9 @@
           </div>
 
           <!-- Duration display -->
-          {#if index > 0}
+          {#if index > 0 && entry.startTime && splitEntries[index - 1]?.startTime}
             <div class="min-w-fit text-sm text-gray-600">
-              ({fmtDuration(entry.startTime - splitEntries[index - 1].startTime)})
+              ({fmtDuration(entry.startTime - (splitEntries[index - 1]?.startTime || 0))})
             </div>
           {/if}
 
@@ -291,7 +318,7 @@
                 list={`end-times-${entry.id}`}
               />
               <datalist id={`end-times-${entry.id}`}>
-                {#each generateTimeSuggestions(entry.endTime || entry.startTime + HOUR) as suggestion}
+                {#each generateTimeSuggestions(entry.endTime || (entry.startTime || nowMinutes()) + HOUR, false) as suggestion}
                   <option value={suggestion.text}>{suggestion.text} {suggestion.duration}</option>
                 {/each}
               </datalist>
