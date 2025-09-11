@@ -210,6 +210,10 @@
   })
 </script>
 
+<svelte:head>
+  <title>Time Budget Tracker</title>
+</svelte:head>
+
 {#if showReallocationMode}
   <div class="fixed top-0 right-0 left-0 z-50 border-b bg-white p-4 shadow-lg">
     <div class="mx-auto max-w-4xl">
