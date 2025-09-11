@@ -270,7 +270,7 @@
   </div>
 {/if}
 
-{#if currentTasks.length > 0}
+{#if currentTasks.length > 0 && !showReallocationMode}
   <div class="pb-1.5 {showReallocationMode ? 'mt-32' : ''}">
     {#each currentTasks as task}
       <p class="mb-1 flex justify-around border-b pb-1">
