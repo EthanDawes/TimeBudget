@@ -75,6 +75,15 @@
         subcategory: firstTask.subcategory,
         isConcurrent: false,
       },
+      {
+        // Very similar to calling `addEntry` but for some reason doing that here error loops
+        id: crypto.randomUUID(),
+        // startTime should both be blank
+        startTimeText: "",
+        category: firstTask.category,
+        subcategory: firstTask.subcategory,
+        isConcurrent: false,
+      },
     ]
   }
 
