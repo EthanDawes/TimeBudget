@@ -27,7 +27,7 @@
   import LabeledProgress from "./LabeledProgress.svelte"
   import SplitTimeModal from "./SplitTimeModal.svelte"
   import { resolve } from "$app/paths"
-  import { fmtDuration, nowMinutes, parseTimeString } from "$lib/time"
+  import { fmtDuration, MINUTE, nowMinutes, parseTimeString } from "$lib/time"
   import type { TimeEntry } from "$lib/db"
 
   let budget = $state<BudgetConfig>(loadWeeklyBudgetConfig())
@@ -239,6 +239,7 @@
             type="range"
             min="0"
             max={maxReallocationAmount}
+            step={30 * MINUTE}
             bind:value={reallocationAmount}
             class="w-full"
           />
