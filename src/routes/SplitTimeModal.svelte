@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fmtDuration, nowMinutes, parseTimeString, HOUR, MINUTE, DAY } from "$lib/time"
+  import { fmtDuration, nowMinutes, parseTimeString, HOUR, MINUTE, MILLISECOND } from "$lib/time"
   import { loadWeeklyBudgetConfig, type BudgetConfig } from "$lib/budgetManager"
   import type { TimeEntry } from "$lib/db"
 
@@ -38,8 +38,10 @@
     // Start from current time, go back 2 hours and forward 4 hours in 15-minute increments
     for (let offset = -2 * HOUR; offset <= 4 * HOUR; offset += 15 * MINUTE) {
       const time = now + offset
-      const hours = Math.floor(time / HOUR) % 24
-      const minutes = time % HOUR
+      // Convert minutes-since-epoch to local time for display
+      const date = new Date(time / MILLISECOND)
+      const hours = date.getHours()
+      const minutes = date.getMinutes()
       const timeText = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
       const duration = fmtDuration(Math.abs(time - baseTime))
 
@@ -71,16 +73,33 @@
   }
 
   function formatTimeFromMinutes(minutes: number): string {
-    const hours = Math.floor(minutes / HOUR) % 24
-    const mins = Math.floor(minutes % HOUR)
+    // Convert minutes-since-epoch to a Date object to get local time
+    const date = new Date(minutes / MILLISECOND) // Convert minutes to milliseconds
+    const hours = date.getHours()
+    const mins = date.getMinutes()
     return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`
   }
 
   function parseTimeToMinutes(timeText: string, baseDate: number = nowMinutes()): number {
     try {
       const [hours, minutes] = timeText.split(":").map(Number)
-      const dayStart = Math.floor(baseDate / DAY) * DAY
-      return dayStart + hours * HOUR + minutes
+
+      // Create a Date object from the baseDate to get the current day in local time
+      const baseDateTime = new Date(baseDate / MILLISECOND)
+
+      // Create a new Date for the same day but with the specified time
+      const targetDate = new Date(
+        baseDateTime.getFullYear(),
+        baseDateTime.getMonth(),
+        baseDateTime.getDate(),
+        hours,
+        minutes,
+        0,
+        0,
+      )
+
+      // Convert back to minutes-since-epoch
+      return Math.floor(targetDate.getTime() * MILLISECOND)
     } catch {
       return baseDate
     }
