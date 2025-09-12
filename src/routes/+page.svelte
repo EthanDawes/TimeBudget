@@ -271,7 +271,7 @@
 {/if}
 
 {#if currentTasks.length > 0 && !showReallocationMode}
-  <div class="pb-1.5 {showReallocationMode ? 'mt-32' : ''}">
+  <div class="pb-1.5">
     {#each currentTasks as task}
       <p class="mb-1 flex justify-around border-b pb-1">
         <button
@@ -296,7 +296,7 @@
   </div>
 {/if}
 
-<div class="flex flex-col gap-5 {showReallocationMode ? 'mt-8' : ''}">
+<div class="flex flex-col gap-5 {showReallocationMode ? 'mt-32' : ''}">
   {#each Object.entries(showReallocationMode ? previewBudget : budget) as [categoryName, category]}
     {@const categoryAvailable = getAvailableTime(budget, accumulatedTime, categoryName, null)}
     {@const isSourceCategory =
