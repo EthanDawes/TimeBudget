@@ -311,7 +311,7 @@
     <div
       class="block {isSourceCategory || isTargetCategory || hasSelectedSubcategory
         ? 'rounded border bg-white p-2'
-        : ''} {isCategoryDisabled ? 'opacity-50 grayscale' : ''}"
+        : ''}"
     >
       <LabeledProgress
         spent={categoryOverages[categoryName] ?? 0}
@@ -319,7 +319,7 @@
           Object.values(category.subcategories).reduce((sum, budget) => sum + budget, 0)}
         style={showReallocationMode
           ? !sourceSelection && categoryAvailable <= 0
-            ? "cursor-not-allowed"
+            ? "cursor-not-allowed opacity-50 grayscale"
             : "cursor-pointer"
           : ""}
         onclick={showReallocationMode && !(!sourceSelection && categoryAvailable <= 0)
