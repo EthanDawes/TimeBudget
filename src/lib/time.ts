@@ -47,3 +47,36 @@ export function parseTimeString(timeStr: string): number {
 
   return totalMinutes
 }
+
+export function formatTimeFromMinutes(minutes: number): string {
+  // Convert minutes-since-epoch to a Date object to get local time
+  const date = new Date(minutes / MILLISECOND) // Convert minutes to milliseconds
+  const hours = date.getHours()
+  const mins = date.getMinutes()
+  return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`
+}
+
+export function parseTimeToMinutes(timeText: string, baseDate: number = nowMinutes()): number {
+  try {
+    const [hours, minutes] = timeText.split(":").map(Number)
+
+    // Create a Date object from the baseDate to get the current day in local time
+    const baseDateTime = new Date(baseDate / MILLISECOND)
+
+    // Create a new Date for the same day but with the specified time
+    const targetDate = new Date(
+      baseDateTime.getFullYear(),
+      baseDateTime.getMonth(),
+      baseDateTime.getDate(),
+      hours,
+      minutes,
+      0,
+      0,
+    )
+
+    // Convert back to minutes-since-epoch
+    return Math.floor(targetDate.getTime() * MILLISECOND)
+  } catch {
+    return baseDate
+  }
+}
