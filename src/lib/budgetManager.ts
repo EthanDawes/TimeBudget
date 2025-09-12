@@ -186,23 +186,25 @@ export async function switchTaskConcurrent(category: string, subcategory: string
 // Reallocate time between categories/subcategories
 export function reallocateTime(
   budget: BudgetConfig,
-  fromCategory: string,
+  fromCategory: string | null, // Null if moving from unallocated tmie
   fromSubcategory: string | null,
   toCategory: string,
   toSubcategory: string | null,
   amount: number,
 ): BudgetConfig {
-  const newBudget = JSON.parse(JSON.stringify(budget)) // Deep clone
+  const newBudget = structuredClone(budget)
 
   // Remove time from source
-  if (fromSubcategory) {
-    newBudget[fromCategory].subcategories[fromSubcategory] -= amount
-    // If moving between different categories, also adjust category-level time
-    if (fromCategory !== toCategory) {
+  if (fromCategory) {
+    if (fromSubcategory) {
+      newBudget[fromCategory].subcategories[fromSubcategory] -= amount
+      // If moving between different categories, also adjust category-level time
+      if (fromCategory !== toCategory) {
+        newBudget[fromCategory].time -= amount
+      }
+    } else {
       newBudget[fromCategory].time -= amount
     }
-  } else {
-    newBudget[fromCategory].time -= amount
   }
 
   // Add time to destination
