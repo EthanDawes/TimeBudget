@@ -115,12 +115,16 @@ export function calculateCategoryOverage(budget: BudgetConfig, accumulatedTime: 
   const categoryOverages: Record<string, number> = {}
 
   for (const [categoryName, category] of Object.entries(budget)) {
-    const totalSubcategoryBudget = Object.values(category.subcategories).reduce(
-      (sum, budget) => sum + budget,
-      0,
-    )
-    const totalSpent = accumulatedTime[categoryName] ?? 0
-    categoryOverages[categoryName] = Math.max(0, totalSpent - totalSubcategoryBudget)
+    let totalOverage = 0
+
+    // Sum up overages from individual subcategories
+    for (const [subcategoryName, subcategoryBudget] of Object.entries(category.subcategories)) {
+      const subcategorySpent = accumulatedTime[categoryName + subcategoryName] ?? 0
+      const subcategoryOverage = Math.max(0, subcategorySpent - subcategoryBudget)
+      totalOverage += subcategoryOverage
+    }
+
+    categoryOverages[categoryName] = totalOverage
   }
 
   return categoryOverages
