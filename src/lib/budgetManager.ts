@@ -196,7 +196,7 @@ export function reallocateTime(
   toSubcategory: string | null,
   amount: number,
 ): BudgetConfig {
-  const newBudget = structuredClone(budget)
+  const newBudget = JSON.parse(JSON.stringify(budget)) // Deep clone since structuredClone doesn't work with svelte objects >:(
 
   // Remove time from source
   if (fromCategory) {
