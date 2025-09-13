@@ -309,7 +309,7 @@
     {@const isCategoryDisabled = showReallocationMode && !sourceSelection && categoryAvailable <= 0}
 
     <div
-      class="flex flex-col gap-1 {isSourceCategory || isTargetCategory || hasSelectedSubcategory
+      class="block {isSourceCategory || isTargetCategory || hasSelectedSubcategory
         ? 'rounded border bg-white p-2'
         : ''}"
     >
@@ -317,8 +317,6 @@
         spent={categoryOverages[categoryName] ?? 0}
         budget={category.time -
           Object.values(category.subcategories).reduce((sum, budget) => sum + budget, 0)}
-        categoryBudget={unallocatedTime - calculateOverage(budget, accumulatedTime)}
-        unallocatedBudget={0}
         style={showReallocationMode
           ? !sourceSelection && categoryAvailable <= 0
             ? "cursor-not-allowed opacity-50 grayscale"
@@ -363,10 +361,6 @@
           <LabeledProgress
             spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
             budget={subcategoryBudget}
-            categoryBudget={category.time -
-              Object.values(category.subcategories).reduce((sum, budget) => sum + budget, 0) -
-              (categoryOverages[categoryName] ?? 0)}
-            unallocatedBudget={unallocatedTime - calculateOverage(budget, accumulatedTime)}
             style={showReallocationMode
               ? !sourceSelection && subcategoryAvailable <= 0
                 ? "cursor-not-allowed"
@@ -394,12 +388,7 @@
     </div>
   {/each}
 
-  <LabeledProgress
-    spent={calculateOverage(budget, accumulatedTime)}
-    budget={unallocatedTime}
-    categoryBudget={0}
-    unallocatedBudget={0}
-  >
+  <LabeledProgress spent={calculateOverage(budget, accumulatedTime)} budget={unallocatedTime}>
     <h2 class="font-bold">Unallocated time</h2>
   </LabeledProgress>
 </div>
