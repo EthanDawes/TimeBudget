@@ -309,7 +309,7 @@
     {@const isCategoryDisabled = showReallocationMode && !sourceSelection && categoryAvailable <= 0}
 
     <div
-      class="block {isSourceCategory || isTargetCategory || hasSelectedSubcategory
+      class="flex flex-col gap-1 {isSourceCategory || isTargetCategory || hasSelectedSubcategory
         ? 'rounded border bg-white p-2'
         : ''}"
     >
