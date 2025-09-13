@@ -80,7 +80,7 @@
       {@render children?.()}
     </div>
     <div class="flex-shrink-0">
-      {fmtDuration(budget - spent)} / {fmtDuration(budget)}
+      {fmtDuration(totalBudget - spent)} / {fmtDuration(totalBudget)}
     </div>
   </div>
 </div>
