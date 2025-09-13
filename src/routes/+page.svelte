@@ -315,8 +315,10 @@
     >
       <LabeledProgress
         spent={categoryOverages[categoryName] ?? 0}
-        budget={category.time -
+        budget={0}
+        categoryBudget={category.time -
           Object.values(category.subcategories).reduce((sum, budget) => sum + budget, 0)}
+        unallocatedBudget={unallocatedTime - calculateOverage(budget, accumulatedTime)}
         style={showReallocationMode
           ? !sourceSelection && categoryAvailable <= 0
             ? "cursor-not-allowed opacity-50 grayscale"
@@ -361,6 +363,10 @@
           <LabeledProgress
             spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
             budget={subcategoryBudget}
+            categoryBudget={category.time -
+              Object.values(category.subcategories).reduce((sum, budget) => sum + budget, 0) -
+              (categoryOverages[categoryName] ?? 0)}
+            unallocatedBudget={unallocatedTime - calculateOverage(budget, accumulatedTime)}
             style={showReallocationMode
               ? !sourceSelection && subcategoryAvailable <= 0
                 ? "cursor-not-allowed"
@@ -388,7 +394,12 @@
     </div>
   {/each}
 
-  <LabeledProgress spent={calculateOverage(budget, accumulatedTime)} budget={unallocatedTime}>
+  <LabeledProgress
+    spent={calculateOverage(budget, accumulatedTime)}
+    budget={0}
+    categoryBudget={0}
+    unallocatedBudget={unallocatedTime}
+  >
     <h2 class="font-bold">Unallocated time</h2>
   </LabeledProgress>
 </div>
