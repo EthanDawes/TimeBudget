@@ -7,7 +7,7 @@
     children: Snippet<[]>
     spent: number
     // Spent minutes of the current timer, to appear in blue
-    inProgress: number
+    inProgress?: number
     budget: number
     categoryBudget: number
     unallocatedBudget: number
@@ -22,8 +22,8 @@
     style = "",
     onclick,
     inProgress = 0,
-    categoryBudget = 0,
-    unallocatedBudget = 0,
+    categoryBudget,
+    unallocatedBudget,
   }: ProgressProps = $props()
 
   // It may seem odd to calculate budget by adding spent, but that budget time has already been spent by this task, I need to know the additional time
