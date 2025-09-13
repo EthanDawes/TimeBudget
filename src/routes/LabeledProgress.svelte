@@ -28,9 +28,10 @@
 
   // It may seem odd to calculate budget by adding spent, but that budget time has already been spent by this task, I need to know the additional time
   // Out of context, this might seem like as you increase `spent`, your budget also increases, but in actuall application `budget` parameter will also go down
+  // `budget` never changes though (just for this subcategory)
   const totalBudget = $derived(
     spent > budget
-      ? spent > budget + categoryBudget
+      ? categoryBudget <= 0
         ? spent + unallocatedBudget
         : spent + categoryBudget
       : budget,
@@ -54,14 +55,20 @@
     <div class="absolute top-0 left-0 flex h-full w-full">
       {#if spent > budget}
         <div
-          class="h-full border-r-4 border-[#f97316]"
+          class="h-full border-r-4 border-[#facc15]"
           style:width={(budget / totalBudget) * 100 + "%"}
         ></div>
       {/if}
       {#if spent > budget + categoryBudget}
         <div
-          class="h-full border-r-4 border-[#ef4444]"
+          class="h-full border-r-4 border-[#f97316]"
           style:width={(categoryBudget / totalBudget) * 100 + "%"}
+        ></div>
+      {/if}
+      {#if spent > budget + categoryBudget + unallocatedBudget}
+        <div
+          class="h-full border-r-4 border-[#ef4444]"
+          style:width={(unallocatedBudget / totalBudget) * 100 + "%"}
         ></div>
       {/if}
     </div>
@@ -73,7 +80,7 @@
       {@render children?.()}
     </div>
     <div class="flex-shrink-0">
-      {spent} / {totalBudget}
+      {spent} / {budget} / {totalBudget}
       <!-- {fmtDuration(budget - spent)} / {fmtDuration(budget)} -->
     </div>
   </div>
