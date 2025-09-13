@@ -21,9 +21,9 @@
     budget,
     style = "",
     onclick,
-    inProgress,
-    categoryBudget,
-    unallocatedBudget,
+    inProgress = 0,
+    categoryBudget = 0,
+    unallocatedBudget = 0,
   }: ProgressProps = $props()
 
   // It may seem odd to calculate budget by adding spent, but that budget time has already been spent by this task, I need to know the additional time
