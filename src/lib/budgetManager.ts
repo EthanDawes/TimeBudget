@@ -105,8 +105,16 @@ export function getUnallocatedTime(budget: BudgetConfig) {
 
 export function calculateOverage(budget: BudgetConfig, accumulatedTime: AccumulatedTime) {
   let overage = 0
+  const categoryOverages = calculateCategoryOverage(budget, accumulatedTime)
+
   for (const [categoryName, category] of Object.entries(budget)) {
-    overage += Math.max(0, (accumulatedTime[categoryName] ?? 0) - category.time)
+    // Calculate category buffer (total category time minus sum of subcategories)
+    const categoryBuffer =
+      category.time - Object.values(category.subcategories).reduce((sum, budget) => sum + budget, 0)
+
+    // If subcategory overages exceed the category buffer, the excess comes from unallocated time
+    const categoryOverage = categoryOverages[categoryName] ?? 0
+    overage += Math.max(0, categoryOverage - categoryBuffer)
   }
   return overage
 }
