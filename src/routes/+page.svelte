@@ -214,13 +214,6 @@
   <title>Time Budget Tracker</title>
 </svelte:head>
 
-<LabeledProgress spent={150} budget={100} categoryBudget={0} unallocatedBudget={0} inProgress={0}>
-  Test
-</LabeledProgress>
-
-<pre>{JSON.stringify(accumulatedTime, null, 2)}</pre>
-<pre>{JSON.stringify(categoryOverages, null, 2)}</pre>
-
 {#if showReallocationMode}
   <div class="fixed top-0 right-0 left-0 z-50 border-b bg-white p-4 shadow-lg">
     <div class="mx-auto max-w-4xl">
