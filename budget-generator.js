@@ -17,47 +17,49 @@ function Category(name, time, subcategories) {
   }
 }
 
-const PLUS = (num) => ({ type: "plus", num })
-const TOTAL = (num) => ({ type: "total", num })
+const PLUS = (hours) => ({ type: "plus", num: hours * HOUR })
+const TOTAL = (hours) => ({ type: "total", num: hours * HOUR })
 
 const creditHours = 15
 const workPerCredHour = 3 * HOUR
-const lectureDuration = 8 * HOUR + 1.5 * HOUR * 6 // 8 regular lectures (hour-long) + 6 power hours
+const lectureDuration = 2 * HOUR + 1.5 * HOUR * 6 // 2 PSOs (hour-long) + 6 power hours. I think attending STAT 511 & linalg less likely
 const courseworkTotal = creditHours * workPerCredHour
 
 const mealsPerDay = 2
 const mealDuration = 30 * MINUTE
 
 const budget = {
-  ...Category("Social", TOTAL(15 * HOUR), {
+  ...Category("Social", TOTAL(15), {
     El: 2 * HOUR,
     Friends: 2 * HOUR,
     "New connections": 2 * HOUR,
+    "Big Hill": 2 * HOUR,
     "Hack night": 3 * HOUR,
   }),
-  ...Category("Coursework", PLUS(0), {
-    Hw: courseworkTotal - 7 * HOUR - lectureDuration,
-    "Hw review": 2 * HOUR,
-    Lectures: 0,
-    "Office hours / group study": 5 * HOUR,
+  ...Category("Coursework", TOTAL(35), {
+    Hw: 20 * HOUR, // Calculated from actual week data
+    "Hw review": 1 * HOUR,
+    Lectures: lectureDuration,
+    "Office hours / group study": 1 * HOUR,
   }),
   ...Category("Jobs", PLUS(0), {
     ECELabs: 10 * HOUR,
-    "Apply for internships": 1 * HOUR * DAILY,
-    RA: 5 * HOUR, // 1 hr rounds, 1 hr newsletter, 1 hr shopping, 2 hr event execution
+    Internships: 1 * HOUR * DAILY,
+    RA: 6 * HOUR, // 1 hr rounds, 1 hr newsletter, 1 hr shopping, 2 hr event execution
     RHA: 4 * HOUR, // Senate, PRT, 1:1, Exec
   }),
   ...Category("Wellness", PLUS(0), {
-    Eat: mealDuration * mealsPerDay * DAILY + 10 * MINUTE * DAILY, // Lunch/dinner take longer, breakfast is quick
+    Eat: 6.5 * HOUR, // My fancy formula turned out to be too much time
     // TODO: this would be a good use case for more intelligent per-day budgeting. If I don't spend 30 min eating, I can assume I saved that time and add to unalloc time
     Sleep: 8 * HOUR * DAILY,
     Exercise: 30 * MINUTE * DAILY,
     Mindfullness: 10 * MINUTE * DAILY,
     Chores: 10 * MINUTE * DAILY + 20 * MINUTE * DAILY * 3, // Morning, evening, and shower. Plus time for cleaning/organization
   }),
-  ...Category("Curiosity", TOTAL(15 * HOUR), {
+  ...Category("Curiosity", TOTAL(15), {
     Learning: 5 * HOUR,
-    "Side programming": 10 * HOUR,
+    Programming: 5 * HOUR,
+    Projects: 5 * HOUR,
   }),
 }
 
