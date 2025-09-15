@@ -6,7 +6,7 @@
     MILLISECOND,
     MINUTE,
     nowMinutes,
-    parseTimeToMinutes
+    parseTimeToMinutes,
   } from "$lib/time"
   import { type BudgetConfig, loadWeeklyBudgetConfig } from "$lib/budgetManager"
   import type { TimeEntry } from "$lib/db"

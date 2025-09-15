@@ -8,12 +8,8 @@ export function fmtDuration(minutes: number) {
   const sign = minutes < 0 ? "-" : ""
   const abs = Math.abs(minutes)
   const hours = Math.floor(abs / HOUR)
-  const remaining = abs % HOUR
-  return [
-    sign,
-    hours ? `${hours}h ` : "",
-    (remaining || !hours) ? `${remaining}m` : ""
-  ].join("")
+  const remaining = Math.round(abs % HOUR)
+  return [sign, hours ? `${hours}h ` : "", remaining || !hours ? `${remaining}m` : ""].join("")
 }
 
 /** Get the start of the current week (Monday) */
@@ -26,7 +22,7 @@ export function getWeekStart(): number {
   return monday.getTime() * MILLISECOND
 }
 
-export const nowMinutes = () => Math.floor(Date.now() * MILLISECOND)
+export const nowMinutes = () => Date.now() * MILLISECOND
 
 // Parse time string in format like "1h 30m", "45m", "2h"
 export function parseTimeString(timeStr: string): number {
