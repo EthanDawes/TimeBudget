@@ -184,15 +184,9 @@ export async function switchTaskConcurrent(category: string, subcategory: string
     return
   }
 
-  // If last task was started within 30 seconds (0.5 minutes in our time units), start concurrent task
-  const timeSinceLastStart = nowMinutes() - lastTask.timestampStart
-  if (timeSinceLastStart <= 0.5) {
-    await startNewTask(category, subcategory)
-  } else {
-    // Otherwise, finish the last task and start new one
-    await finishTask()
-    await startNewTask(category, subcategory)
-  }
+  // This is where logic to start concurrent tasks used to be (check git history to restore)
+  await finishTask()
+  await startNewTask(category, subcategory)
 }
 
 // Reallocate time between categories/subcategories
