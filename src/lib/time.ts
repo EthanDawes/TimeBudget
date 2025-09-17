@@ -5,10 +5,11 @@ export const HOUR = 60 * MINUTE
 export const DAY = 24 * HOUR
 
 export function fmtDuration(minutes: number) {
+  minutes = Math.round(minutes) // Round now instead of later to avoid weird "4h 60m"
   const sign = minutes < 0 ? "-" : ""
   const abs = Math.abs(minutes)
   const hours = Math.floor(abs / HOUR)
-  const remaining = Math.round(abs % HOUR)
+  const remaining = abs % HOUR
   return [sign, hours ? `${hours}h ` : "", remaining || !hours ? `${remaining}m` : ""].join("")
 }
 
