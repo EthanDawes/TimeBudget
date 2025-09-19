@@ -220,7 +220,7 @@ export function reallocateTime(
     if (fromCategory !== toCategory) {
       newBudget[toCategory].time += amount
     }
-  } else {
+  } else if (fromCategory !== toCategory) {
     newBudget[toCategory].time += amount
   }
 
