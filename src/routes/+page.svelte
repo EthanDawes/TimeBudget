@@ -136,7 +136,7 @@
       // Reset reallocation mode
       handleReallocationModeToggle()
     } catch (error) {
-      console.error("Error reallocating time:", error)
+      console.error("Error rebudgeting time:", error)
     }
   }
 
@@ -218,7 +218,7 @@
   <div class="fixed top-0 right-0 left-0 z-50 border-b bg-white p-4 shadow-lg">
     <div class="mx-auto max-w-4xl">
       <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-semibold">Reallocate Time</h3>
+        <h3 class="text-lg font-semibold">Rebudget Time</h3>
         <div class="flex space-x-2">
           <button
             class="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-50"
@@ -290,8 +290,8 @@
       </p>
     {/each}
     <div class="flex justify-around">
-      <button class="border" onclick={() => (showSplitTimeModal = true)}>Split time</button>
-      <button class="border" onclick={handleReallocationModeToggle}>Realloc</button>
+      <button class="border" onclick={() => (showSplitTimeModal = true)}>Split tracking</button>
+      <button class="border" onclick={handleReallocationModeToggle}>Rebudget</button>
     </div>
   </div>
 {/if}

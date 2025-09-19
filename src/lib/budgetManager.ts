@@ -301,7 +301,7 @@ export function validateReallocation(
   if (amount > availableTime) {
     return {
       valid: false,
-      error: `Only ${fmtDuration(availableTime)} available for reallocation`,
+      error: `Only ${fmtDuration(availableTime)} available for rebudgeting`,
     }
   }
 
