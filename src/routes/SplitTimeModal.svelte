@@ -119,9 +119,13 @@
   function sortEntriesByTime() {
     // Keep the first entry in place, sort the rest by start time
     const firstEntry = splitEntries[0]
-    const restEntries = splitEntries
-      .slice(1)
-      .sort((a, b) => (a.startTime || 0) - (b.startTime || 0))
+    const restEntries = splitEntries.slice(1).sort((a, b) => {
+      // Put entries without valid start times last
+      if (!a.startTime && !b.startTime) return 0
+      if (!a.startTime) return 1
+      if (!b.startTime) return -1
+      return a.startTime - b.startTime
+    })
     splitEntries = [firstEntry, ...restEntries]
   }
 
@@ -230,101 +234,122 @@
 
 <dialog
   bind:this={modal}
-  class="modal w-full max-w-4xl rounded-lg p-6"
+  class="modal w-full max-w-4xl rounded-lg p-3 sm:p-6"
   onclick={(e) => e.target === modal && closeModal()}
 >
   <div class="modal-content">
-    <div class="mb-6 flex items-center justify-between">
-      <h2 class="text-2xl font-bold">Split Time</h2>
-      <button class="text-2xl text-gray-500 hover:text-gray-700" onclick={closeModal}>×</button>
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-xl font-bold sm:text-2xl">Split Time</h2>
+      <button class="text-xl text-gray-500 hover:text-gray-700 sm:text-2xl" onclick={closeModal}
+        >×</button
+      >
     </div>
 
-    <div class="space-y-3">
-      {#each splitEntries as entry, index}
-        <div class="flex items-center gap-3 rounded-lg border bg-gray-50 p-3">
-          <!-- Start time -->
-          <div class="flex-shrink-0">
-            <input
-              type="text"
-              value={entry.startTimeText}
-              oninput={(e) => updateStartTime(index, (e.target as HTMLInputElement).value)}
-              disabled={index === 0}
-              class="w-20 rounded border px-2 py-1 text-center {index === 0 ? 'bg-gray-200' : ''}"
-              placeholder="12:30"
-              list={`start-times-${entry.id}`}
-            />
-            {#if index > 0}
-              <datalist id={`start-times-${entry.id}`}>
-                {#each generateTimeSuggestions(entry.startTime || nowMinutes(), true) as suggestion}
-                  <option value={suggestion.text}>{suggestion.text} {suggestion.duration}</option>
-                {/each}
-              </datalist>
-            {/if}
-          </div>
-
-          <!-- Duration display -->
-          {#if index > 0 && entry.startTime && splitEntries[index - 1]?.startTime}
-            <div class="min-w-fit text-sm text-gray-600">
-              ({fmtDuration(entry.startTime - (splitEntries[index - 1]?.startTime || 0))})
-            </div>
-          {/if}
-
-          <!-- Category/Subcategory dropdown -->
-          <select
-            value={`${entry.category}|${entry.subcategory}`}
-            onchange={(e) => updateCategory(index, (e.target as HTMLSelectElement).value)}
-            class="flex-1 rounded border px-2 py-1"
-          >
-            {#each getCategoryOptions() as option}
-              <option value={option.value}>{option.label}</option>
-            {/each}
-          </select>
-
-          <!-- Concurrent toggle -->
-          <label class="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={entry.isConcurrent}
-              onchange={() => toggleConcurrent(index)}
-            />
-            Concurrent
-          </label>
-
-          <!-- End time (only for concurrent tasks) -->
-          {#if entry.isConcurrent}
+    <div class="space-y-2">
+      {#each splitEntries as entry, index (entry.id)}
+        <div
+          class="flex flex-col gap-2 rounded-lg border bg-gray-50 p-2 sm:flex-row sm:items-center sm:gap-3 sm:p-3"
+        >
+          <!-- Main row with start time, category, and controls -->
+          <div class="flex flex-1 items-center gap-2">
+            <!-- Start time -->
             <div class="flex-shrink-0">
               <input
                 type="text"
-                value={entry.endTimeText || ""}
-                oninput={(e) => updateEndTime(index, (e.target as HTMLInputElement).value)}
-                class="w-20 rounded border px-2 py-1 text-center"
-                placeholder="13:30"
-                list={`end-times-${entry.id}`}
+                value={entry.startTimeText}
+                oninput={(e) => updateStartTime(index, (e.target as HTMLInputElement).value)}
+                disabled={index === 0}
+                class="w-16 rounded border px-1 py-1 text-center text-sm sm:w-20 sm:px-2 {index ===
+                0
+                  ? 'bg-gray-200'
+                  : ''}"
+                placeholder="12:30"
+                list={`start-times-${entry.id}`}
               />
-              <datalist id={`end-times-${entry.id}`}>
-                {#each generateTimeSuggestions(entry.endTime || (entry.startTime || nowMinutes()) + HOUR, false) as suggestion}
-                  <option value={suggestion.text}>{suggestion.text} {suggestion.duration}</option>
-                {/each}
-              </datalist>
+              {#if index > 0}
+                <datalist id={`start-times-${entry.id}`}>
+                  {#each generateTimeSuggestions(entry.startTime || nowMinutes(), true) as suggestion}
+                    <option value={suggestion.text}>{suggestion.text} {suggestion.duration}</option>
+                  {/each}
+                </datalist>
+              {/if}
             </div>
-          {/if}
 
-          <!-- Remove button -->
-          <button
-            class="rounded border border-red-300 px-2 py-1 text-sm text-red-500 hover:text-red-700 disabled:opacity-30"
-            onclick={() => removeEntry(index)}
-            disabled={index === 0}
-          >
-            ×
-          </button>
+            <!-- Category/Subcategory dropdown -->
+            <select
+              value={`${entry.category}|${entry.subcategory}`}
+              onchange={(e) => updateCategory(index, (e.target as HTMLSelectElement).value)}
+              class="min-w-0 flex-1 rounded border px-1 py-1 text-sm sm:px-2"
+            >
+              {#each getCategoryOptions() as option}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
+
+            <!-- Remove button -->
+            <button
+              class="rounded border border-red-300 px-2 py-1 text-sm text-red-500 hover:text-red-700 disabled:opacity-30"
+              onclick={() => removeEntry(index)}
+              disabled={index === 0}
+            >
+              ×
+            </button>
+          </div>
+
+          <!-- Duration and controls row -->
+          <div class="flex items-center gap-2 text-sm">
+            <!-- Duration display -->
+            {#if entry.isConcurrent && entry.startTime && entry.endTime}
+              <div class="text-gray-600">
+                Duration: {fmtDuration(entry.endTime - entry.startTime)}
+              </div>
+            {:else if !entry.isConcurrent}
+              {@const nextEntry = splitEntries[index + 1]}
+              {@const endTime = nextEntry?.startTime || nowMinutes()}
+              {#if entry.startTime}
+                <div class="text-gray-600">
+                  Duration: {fmtDuration(endTime - entry.startTime)}
+                </div>
+              {/if}
+            {/if}
+
+            <!-- Concurrent toggle -->
+            <label class="ml-auto flex items-center gap-1 text-sm">
+              <input
+                type="checkbox"
+                checked={entry.isConcurrent}
+                onchange={() => toggleConcurrent(index)}
+              />
+              Concurrent
+            </label>
+
+            <!-- End time (only for concurrent tasks) -->
+            {#if entry.isConcurrent}
+              <div class="flex-shrink-0">
+                <input
+                  type="text"
+                  value={entry.endTimeText || ""}
+                  oninput={(e) => updateEndTime(index, (e.target as HTMLInputElement).value)}
+                  class="w-16 rounded border px-1 py-1 text-center text-sm sm:w-20 sm:px-2"
+                  placeholder="13:30"
+                  list={`end-times-${entry.id}`}
+                />
+                <datalist id={`end-times-${entry.id}`}>
+                  {#each generateTimeSuggestions(entry.endTime || (entry.startTime || nowMinutes()) + HOUR, false) as suggestion}
+                    <option value={suggestion.text}>{suggestion.text} {suggestion.duration}</option>
+                  {/each}
+                </datalist>
+              </div>
+            {/if}
+          </div>
         </div>
       {/each}
     </div>
 
     <!-- Add entry button -->
-    <div class="mt-4">
+    <div class="mt-3">
       <button
-        class="rounded bg-blue-100 px-4 py-2 text-blue-700 hover:bg-blue-200"
+        class="rounded bg-blue-100 px-3 py-2 text-sm text-blue-700 hover:bg-blue-200"
         onclick={addEntry}
       >
         + Add Time Period
@@ -332,12 +357,12 @@
     </div>
 
     <!-- Submit buttons -->
-    <div class="mt-6 flex justify-end gap-3">
-      <button class="rounded border px-4 py-2 hover:bg-gray-50" onclick={closeModal}>
+    <div class="mt-4 flex flex-col justify-end gap-2 sm:flex-row sm:gap-3">
+      <button class="rounded border px-4 py-2 text-sm hover:bg-gray-50" onclick={closeModal}>
         Cancel
       </button>
       <button
-        class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+        class="rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700"
         onclick={handleSubmit}
       >
         Split Time
@@ -357,7 +382,15 @@
   }
 
   .modal-content {
-    max-height: 80vh;
+    max-height: 90vh;
     overflow-y: auto;
+  }
+
+  @media (max-width: 640px) {
+    .modal {
+      margin: 1rem;
+      width: calc(100% - 2rem);
+      max-width: none;
+    }
   }
 </style>
