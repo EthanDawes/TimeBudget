@@ -37,8 +37,8 @@
   let unallocatedTime = $state(0)
   let currentTasks = $state<TimeEntry[]>([])
   let showReallocationMode = $state(false)
-  let sourceSelection = $state<{ category: string; subcategory?: string } | null>(null)
-  let targetSelection = $state<{ category: string; subcategory?: string } | null>(null)
+  let sourceSelection = $state<{ category: string | null; subcategory?: string } | null>(null)
+  let targetSelection = $state<{ category: string | null; subcategory?: string } | null>(null)
   let reallocationAmount = $state(0)
   let reallocationAmountText = $state("")
   let showSplitTimeModal = $state(false)
@@ -102,9 +102,7 @@
     }
 
     // Reallocation mode behavior
-    const availableTime = subcategory
-      ? getAvailableTime(budget, accumulatedTime, category, subcategory)
-      : getAvailableTime(budget, accumulatedTime, category, null)
+    const availableTime = getAvailableTime(budget, accumulatedTime, category, subcategory || null)
 
     const selection = { category, subcategory }
 
@@ -136,6 +134,22 @@
 
       // Reset reallocation mode
       handleReallocationModeToggle()
+    }
+  }
+
+  function handleUnallocatedClick() {
+    if (!showReallocationMode) return
+
+    const selection = { category: null, subcategory: undefined }
+    const availableTime = getAvailableTime(budget, accumulatedTime, null, null)
+
+    if (!sourceSelection) {
+      // For source selection, must have available time
+      if (availableTime <= 0) return
+      sourceSelection = selection
+    } else if (!targetSelection && sourceSelection.category !== null) {
+      // For target selection, can always select (only if source is not also unallocated)
+      targetSelection = selection
     }
   }
 
@@ -202,18 +216,14 @@
   // Calculate max slider value based on source selection
   let maxReallocationAmount = $derived.by(() => {
     if (!sourceSelection) return 0
-    if (sourceSelection.subcategory) {
-      return Math.floor(
-        getAvailableTime(
-          budget,
-          accumulatedTime,
-          sourceSelection.category,
-          sourceSelection.subcategory,
-        ),
-      )
-    } else {
-      return Math.floor(getAvailableTime(budget, accumulatedTime, sourceSelection.category, null))
-    }
+    return Math.floor(
+      getAvailableTime(
+        budget,
+        accumulatedTime,
+        sourceSelection.category,
+        sourceSelection.subcategory || null,
+      ),
+    )
   })
 
   // Calculate preview budget
@@ -290,12 +300,12 @@
       {#if sourceSelection || targetSelection}
         <div class="mt-2 text-sm text-gray-600">
           {#if sourceSelection}
-            From: {sourceSelection.category}{sourceSelection.subcategory
+            From: {sourceSelection.category ?? "Unallocated"}{sourceSelection.subcategory
               ? ` → ${sourceSelection.subcategory}`
               : ""}
           {/if}
           {#if targetSelection}
-            | To: {targetSelection.category}{targetSelection.subcategory
+            | To: {targetSelection.category ?? "Unallocated"}{targetSelection.subcategory
               ? ` → ${targetSelection.subcategory}`
               : ""}
           {/if}
@@ -423,9 +433,45 @@
     </div>
   {/each}
 
-  <LabeledProgress spent={calculateOverage(budget, accumulatedTime)} budget={unallocatedTime}>
-    <h2 class="font-bold">Unallocated time</h2>
-  </LabeledProgress>
+  {#snippet unallocatedSection()}
+    {@const unallocatedAvailable = getAvailableTime(budget, accumulatedTime, null, null)}
+    {@const isSourceUnallocated = sourceSelection?.category === null}
+    {@const isTargetUnallocated = targetSelection?.category === null}
+    {@const isUnallocatedDisabled =
+      showReallocationMode && !sourceSelection && unallocatedAvailable <= 0}
+
+    <div class={isSourceUnallocated || isTargetUnallocated ? "rounded border bg-white p-2" : ""}>
+      <LabeledProgress
+        spent={calculateOverage(budget, accumulatedTime)}
+        budget={unallocatedTime}
+        style={showReallocationMode
+          ? !sourceSelection && unallocatedAvailable <= 0
+            ? "cursor-not-allowed opacity-50 grayscale"
+            : "cursor-pointer"
+          : ""}
+        onclick={showReallocationMode && !isUnallocatedDisabled
+          ? handleUnallocatedClick
+          : undefined}
+      >
+        <h2
+          class="font-bold {isSourceUnallocated
+            ? 'text-blue-600'
+            : isTargetUnallocated
+              ? 'text-green-600'
+              : ''}"
+        >
+          {#if isSourceUnallocated}
+            🔵
+          {:else if isTargetUnallocated}
+            🟢
+          {/if}
+          Unallocated time
+        </h2>
+      </LabeledProgress>
+    </div>
+  {/snippet}
+
+  {@render unallocatedSection()}
 </div>
 
 <div class="text-center">

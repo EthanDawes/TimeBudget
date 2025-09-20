@@ -8,7 +8,7 @@
     nowMinutes,
     parseTimeToMinutes,
   } from "$lib/time"
-  import { type BudgetConfig, loadWeeklyBudgetConfig } from "$lib/budgetManager"
+  import { type BudgetConfig, loadWeeklyBudgetConfig, type SplitEntry } from "$lib/budgetManager"
   import type { TimeEntry } from "$lib/db"
 
   let {
@@ -20,17 +20,6 @@
     isOpen: boolean
     onsubmit: (splitEntries: SplitEntry[]) => void
   } = $props()
-
-  interface SplitEntry {
-    id: string
-    startTime?: number
-    startTimeText: string
-    category: string
-    subcategory: string
-    isConcurrent: boolean
-    endTime?: number
-    endTimeText?: string
-  }
 
   let budget: BudgetConfig = loadWeeklyBudgetConfig()
   let splitEntries: SplitEntry[] = $state([])
@@ -86,7 +75,7 @@
       {
         // Very similar to calling `addEntry` but for some reason doing that here error loops
         id: crypto.randomUUID(),
-        // startTime should both be blank
+        startTime: nowMinutes(),
         startTimeText: "",
         category: firstTask.category,
         subcategory: firstTask.subcategory,
@@ -100,7 +89,7 @@
 
     const newEntry = {
       id: crypto.randomUUID(),
-      // startTime and startTimeText should both be blank
+      startTime: nowMinutes(),
       startTimeText: "",
       category: lastEntry.category,
       subcategory: lastEntry.subcategory,

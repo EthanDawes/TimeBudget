@@ -194,7 +194,7 @@ export function reallocateTime(
   budget: BudgetConfig,
   fromCategory: string | null, // Null if moving from unallocated tmie
   fromSubcategory: string | null,
-  toCategory: string,
+  toCategory: string | null, // Null if moving to unallocated time
   toSubcategory: string | null,
   amount: number,
 ): BudgetConfig {
@@ -214,26 +214,35 @@ export function reallocateTime(
   }
 
   // Add time to destination
-  if (toSubcategory) {
-    newBudget[toCategory].subcategories[toSubcategory] += amount
-    // If moving between different categories, also adjust category-level time
-    if (fromCategory !== toCategory) {
+  if (toCategory) {
+    if (toSubcategory) {
+      newBudget[toCategory].subcategories[toSubcategory] += amount
+      // If moving between different categories, also adjust category-level time
+      if (fromCategory !== toCategory) {
+        newBudget[toCategory].time += amount
+      }
+    } else if (fromCategory !== toCategory) {
       newBudget[toCategory].time += amount
     }
-  } else if (fromCategory !== toCategory) {
-    newBudget[toCategory].time += amount
   }
+  // If toCategory is null, we're moving to unallocated time (no action needed)
 
   return newBudget
 }
 
-// Get available time for reallocation from a category/subcategory
+// Get available time for reallocation from a category/subcategory or unallocated time
 export function getAvailableTime(
   budget: BudgetConfig,
   accumulatedTime: AccumulatedTime,
-  category: string,
+  category: string | null,
   subcategory: string | null,
 ): number {
+  // Handle unallocated time
+  if (category === null) {
+    const unallocatedTime = getUnallocatedTime(budget)
+    const overage = calculateOverage(budget, accumulatedTime)
+    return Math.max(0, unallocatedTime - overage)
+  }
   const key = subcategory ? category + subcategory : category
   const spent = accumulatedTime[key] ?? 0
 
@@ -277,9 +286,9 @@ export async function cleanupLongRunningTasks(): Promise<void> {
 export function validateReallocation(
   budget: BudgetConfig,
   accumulatedTime: AccumulatedTime,
-  fromCategory: string,
+  fromCategory: string | null,
   fromSubcategory: string | null,
-  toCategory: string,
+  toCategory: string | null,
   toSubcategory: string | null,
   amount: number,
 ): { valid: boolean; error?: string } {
