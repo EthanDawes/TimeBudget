@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from "dexie"
-import { MILLISECOND, nowMinutes } from "./time"
+import { MILLISECOND, DAY } from "./time"
 
 export interface TimeEntry {
   id: number
@@ -29,17 +29,14 @@ export async function exportSpentTime() {
   allEntries.pop()
 
   // Create CSV header
-  const csvHeader = "ID,Category,Subcategory,Start Time,Duration (minutes),End Time\n"
+  const csvHeader = "ID,Category,Subcategory,Start Time,Duration (days)\n"
 
   // Convert entries to CSV rows
   const csvRows = allEntries
     .map((entry) => {
       const startTime = new Date(entry.timestampStart / MILLISECOND).toISOString()
-      const endTime = entry.duration
-        ? new Date((entry.timestampStart + entry.duration) / MILLISECOND).toISOString()
-        : "" // This state indicates an error, past events should not be in progress
 
-      return `${entry.id},"${entry.category}","${entry.subcategory}","${startTime}",${entry.duration},"${endTime}"`
+      return `${entry.id},"${entry.category}","${entry.subcategory}","${startTime}",${entry.duration! / DAY}`
     })
     .join("\n")
 
