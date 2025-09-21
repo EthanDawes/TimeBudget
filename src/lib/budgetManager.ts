@@ -243,17 +243,8 @@ export function getAvailableTime(
     const subcategoryAllocated = budget[category].subcategories[subcategory]
     const subcategoryAvailable = Math.max(0, subcategoryAllocated - spent)
 
-    // Calculate category buffer (total category time minus sum of subcategories)
-    const totalSubcategoryBudget = Object.values(budget[category].subcategories).reduce(
-      (sum, budget) => sum + budget,
-      0,
-    )
-    const categoryBuffer = budget[category].time - totalSubcategoryBudget
-    const categorySpent = accumulatedTime[category] ?? 0
-    const categoryAvailable = Math.max(0, budget[category].time - categorySpent)
-
     // Available time is the minimum of subcategory available and category available
-    return Math.min(subcategoryAvailable, categoryAvailable)
+    return subcategoryAvailable
   } else {
     const category_obj = budget[category]
     const allocated_time =
