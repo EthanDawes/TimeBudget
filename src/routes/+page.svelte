@@ -29,6 +29,7 @@
   import { resolve } from "$app/paths"
   import { fmtDuration, MINUTE, nowMinutes, parseTimeString } from "$lib/time"
   import type { TimeEntry } from "$lib/db"
+  import { ceilTo } from "$lib"
 
   let budget = $state<BudgetConfig>(loadWeeklyBudgetConfig())
   let accumulatedTime = $state({} as AccumulatedTime)
@@ -41,6 +42,10 @@
   let reallocationAmount = $state(0)
   let reallocationAmountText = $state("")
   let showSplitTimeModal = $state(false)
+
+  $effect(() => {
+    if (reallocationAmount > maxReallocationAmount) reallocationAmount = maxReallocationAmount
+  })
 
   async function setState() {
     // Clean up any tasks that have been running for more than 24 hours
@@ -238,7 +243,7 @@
           <input
             type="range"
             min="0"
-            max={maxReallocationAmount}
+            max={ceilTo(maxReallocationAmount, 30)}
             step={30 * MINUTE}
             bind:value={reallocationAmount}
             class="w-full"
