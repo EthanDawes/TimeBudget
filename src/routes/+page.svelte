@@ -121,8 +121,27 @@
     }
   }
 
+  function finishSubcat() {
+    if (commitReallocation()) {
+      if (!sourceSelection!.subcategory) {
+        alert("You cannot finish a category, only subcategories")
+        return
+      }
+
+      // delete subcategory from this week's budget
+      delete budget[sourceSelection!.category].subcategories[sourceSelection!.subcategory]
+
+      saveWeeklyBudgetConfig(budget)
+      setState()
+
+      // Reset reallocation mode
+      handleReallocationModeToggle()
+    }
+  }
+
+  // Returns success state
   function commitReallocation() {
-    if (!sourceSelection || !targetSelection || reallocationAmount <= 0) return
+    if (!sourceSelection || !targetSelection || reallocationAmount <= 0) return false
 
     try {
       const newBudget = reallocateTime(
@@ -138,10 +157,11 @@
       saveWeeklyBudgetConfig(newBudget)
       setState()
 
-      // Reset reallocation mode
-      handleReallocationModeToggle()
+      // Caller must invoke `handleReallocationModeToggle`
+      return true
     } catch (error) {
       console.error("Error rebudgeting time:", error)
+      return false
     }
   }
 
@@ -227,7 +247,10 @@
         <div class="flex space-x-2">
           <button
             class="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-50"
-            onclick={commitReallocation}
+            onclick={() => {
+              commitReallocation()
+              handleReallocationModeToggle()
+            }}
             disabled={!sourceSelection || !targetSelection || reallocationAmount <= 0}
           >
             Commit
@@ -255,6 +278,11 @@
           placeholder="1h 30m"
           class="w-24 rounded border px-3 py-1 text-center"
         />
+        {#if reallocationAmount == maxReallocationAmount}
+          <button class="rounded bg-green-600 px-3 py-1 text-white" onclick={finishSubcat}>
+            Finish
+          </button>
+        {/if}
       </div>
 
       {#if sourceSelection || targetSelection}
