@@ -15,5 +15,10 @@
   <title>Settings - Time Budget Tracker</title>
 </svelte:head>
 
-<textarea class="h-[90vh] w-full border" bind:value={config}></textarea>
+<textarea class="h-[87vh] w-full border" bind:value={config}></textarea>
+<small>
+  If no rebudgeting has been done this week, changes will take effect immediately. Otherwise,
+  they'll affect next week.
+</small>
+<br />
 <button class="border" onclick={saveClick}>Save</button>
