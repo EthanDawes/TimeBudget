@@ -17,8 +17,8 @@ function Category(name, time, subcategories) {
   }
 }
 
-const PLUS = (hours) => ({ type: "plus", num: hours * HOUR })
-const TOTAL = (hours) => ({ type: "total", num: hours * HOUR })
+const PLUS = (hours) => ({ type: "plus", num: hours })
+const TOTAL = (hours) => ({ type: "total", num: hours })
 
 const creditHours = 15
 const workPerCredHour = 3 * HOUR
@@ -29,14 +29,13 @@ const mealsPerDay = 2
 const mealDuration = 30 * MINUTE
 
 const budget = {
-  ...Category("Social", TOTAL(15), {
-    El: 2 * HOUR,
+  ...Category("Social", TOTAL(15 * HOUR), {
     Friends: 2 * HOUR,
     "New connections": 2 * HOUR,
     "Big Hill": 2 * HOUR,
     "Hack night": 3 * HOUR,
   }),
-  ...Category("Coursework", TOTAL(35), {
+  ...Category("Coursework", TOTAL(35 * HOUR), {
     Hw: 20 * HOUR, // Calculated from actual week data
     "Hw review": 1 * HOUR,
     Lectures: lectureDuration,
@@ -45,8 +44,16 @@ const budget = {
   ...Category("Jobs", PLUS(0), {
     ECELabs: 10 * HOUR,
     Internships: 1 * HOUR * DAILY,
-    RA: 6 * HOUR, // 1 hr rounds, 1 hr newsletter, 1 hr shopping, 2 hr event execution
     RHA: 4 * HOUR, // Senate, PRT, 1:1, Exec
+  }),
+  ...Category("RA", PLUS(0), {
+    // 1 hr rounds, 1 hr newsletter, 1 hr shopping, 2 hr event execution
+    Staff: 1 * HOUR,
+    Duty: 1 * HOUR,
+    Admin: 1 * HOUR, // Newsletter, program proposal/reflection
+    "Event Plan": 0,
+    Event: 2 * HOUR,
+    "Hall Club": 1 * HOUR,
   }),
   ...Category("Wellness", PLUS(0), {
     Eat: 6.5 * HOUR, // My fancy formula turned out to be too much time
@@ -54,12 +61,21 @@ const budget = {
     Sleep: 8 * HOUR * DAILY,
     Exercise: 30 * MINUTE * DAILY,
     Mindfullness: 10 * MINUTE * DAILY,
-    Chores: 10 * MINUTE * DAILY + 20 * MINUTE * DAILY * 3, // Morning, evening, and shower. Plus time for cleaning/organization
   }),
-  ...Category("Curiosity", TOTAL(15), {
+  ...Category("Chores", TOTAL(10 * MINUTE * DAILY + 20 * MINUTE * DAILY * 3), {
+    // Morning, evening, and shower. Plus time for cleaning/organization
+    Routine: 0,
+    Clean: 0,
+    Shower: 0,
+    Schedule: 0, // Includes future planning
+  }),
+  ...Category("Curiosity", TOTAL(15 * HOUR), {
     Learning: 5 * HOUR,
     Programming: 5 * HOUR,
     Projects: 5 * HOUR,
+  }),
+  ...Category("Relax", PLUS(0), {
+    Relax: 0, // Idk, I definately need time for this but don't know where to take it from
   }),
 }
 
