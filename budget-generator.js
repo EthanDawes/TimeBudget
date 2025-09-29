@@ -48,12 +48,12 @@ const budget = {
   }),
   ...Category("RA", PLUS(0), {
     // 1 hr rounds, 1 hr newsletter, 1 hr shopping, 2 hr event execution
-    Staff: 1 * HOUR,
-    Duty: 1 * HOUR,
-    Admin: 1 * HOUR, // Newsletter, program proposal/reflection
-    "Event Plan": 0,
-    Event: 2 * HOUR,
     "Hall Club": 1 * HOUR,
+    Staff: 1 * HOUR,
+    "1:1": 30 * MINUTE,
+    Admin: 1 * HOUR, // Newsletter, program proposal/reflection
+    Event: 2 * HOUR, // Include planning
+    Duty: 1 * HOUR,
   }),
   ...Category("Wellness", PLUS(0), {
     Eat: 6.5 * HOUR, // My fancy formula turned out to be too much time
