@@ -5,6 +5,31 @@ const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
 const DAILY = 7
 
+// Days of the week
+const M = 0
+const T = 1
+const W = 2
+const R = 3
+const F = 4 // Muslim day of worship Jum'ah
+const S = 5 // Sabbath
+const J = 6 // Jesusday
+const weekdays = [M, T, W, R, F]
+const everyday = [...weekdays, S, J]
+
+// This is a validator function with no current UI features. It provides insight into whether your schedule for every day is possible and how difficult it will be.
+// For example, if you have a 4 hour confrence one day, and 20 hours of homework, it should
+// Resolving how to spread time is a task best left to the user (eg. moving 2 hr of homework to the next day)
+// Maybe make M..J objects with a .add and .sub method to move time around?
+function Spread(time, ...dates) {
+  const dailyTime = time / dates.length
+  for (const date of dates) {
+    dailyPlannedTime[date] -= dailyTime
+  }
+  return time
+}
+// Used by `Spread` Currently maps date (index) to free time that day. TODO: make this a pie chart per day?
+const dailyPlannedTime = Array(7).fill(DAY)
+
 function Category(name, time, subcategories) {
   const subcatTotal = Object.values(subcategories).reduce((acc, val) => acc + val)
   if (time.type === "total" && subcatTotal > time.num)
@@ -22,7 +47,7 @@ const TOTAL = (hours) => ({ type: "total", num: hours })
 
 const creditHours = 15
 const workPerCredHour = 3 * HOUR
-const lectureDuration = 2 * HOUR + 1.5 * HOUR * 6 // 2 PSOs (hour-long) + 6 power hours. I think attending STAT 511 & linalg less likely
+const lectureDuration = Spread(2 * HOUR, T, R) + Spread(1.5 * HOUR * 6, T, R) // 2 PSOs (hour-long) + 6 power hours. I think attending STAT 511 & linalg less likely
 const courseworkTotal = creditHours * workPerCredHour
 
 const mealsPerDay = 2
@@ -32,37 +57,38 @@ const budget = {
   ...Category("Social", TOTAL(15 * HOUR), {
     Friends: 2 * HOUR,
     "New connections": 2 * HOUR,
-    "Big Hill": 2 * HOUR,
-    "Hack night": 3 * HOUR,
+    "Big Hill": Spread(2 * HOUR, T, R),
+    "Hack night": Spread(3 * HOUR, F),
   }),
   ...Category("Coursework", TOTAL(35 * HOUR), {
-    Hw: 20 * HOUR, // Calculated from actual week data
-    "Hw review": 1 * HOUR,
+    Hw: Spread(20 * HOUR, ...everyday), // Calculated from actual week data
+    "Hw review": Spread(1 * HOUR, ...weekdays),
     Lectures: lectureDuration,
-    "Office hours / group study": 1 * HOUR,
+    "Office hours / group study": Spread(1 * HOUR, ...weekdays),
   }),
   ...Category("Jobs", PLUS(0), {
-    ECELabs: 10 * HOUR,
-    Internships: 1 * HOUR * DAILY,
-    RHA: 4 * HOUR, // Senate, PRT, 1:1, Exec
+    ECELabs: Spread(1 * HOUR, T) + Spread(2 * HOUR, W) + 7 * HOUR, // Team lead, SW & general meeting
+    Internships: Spread(1 * HOUR * DAILY, M, R, S),
+    RHA: Spread(1 * HOUR, M) + Spread(1 * HOUR, W) + Spread(45 * MINUTE, W) + 1.25 * HOUR, // Senate, 1:1, Exec, resp. sometimes PRT. 4hr total
   }),
   ...Category("RA", PLUS(0), {
     // 1 hr rounds, 1 hr newsletter, 1 hr shopping, 2 hr event execution
-    "Hall Club": 1 * HOUR,
-    Staff: 1 * HOUR,
-    "1:1": 30 * MINUTE,
+    "Hall Club": Spread(1 * HOUR, M),
+    Staff: Spread(1 * HOUR, M),
+    "1:1": Spread(30 * MINUTE, T), // Can be either M or T
     Admin: 1 * HOUR, // Newsletter, program proposal/reflection
+    Residents: 1 * HOUR, // Interact, answer questions
     Event: 2 * HOUR, // Include planning
-    Duty: 1 * HOUR,
+    Duty: Spread(1 * HOUR, J),
   }),
   ...Category("Wellness", PLUS(0), {
-    Eat: 6.5 * HOUR, // My fancy formula turned out to be too much time
+    Eat: Spread(6.5 * HOUR, ...everyday), // My fancy formula turned out to be too much time
     // TODO: this would be a good use case for more intelligent per-day budgeting. If I don't spend 30 min eating, I can assume I saved that time and add to unalloc time
-    Sleep: 8 * HOUR * DAILY,
+    Sleep: Spread(8 * HOUR * DAILY, ...everyday),
     Exercise: 30 * MINUTE * DAILY,
     Mindfullness: 10 * MINUTE * DAILY,
   }),
-  ...Category("Chores", TOTAL(10 * MINUTE * DAILY + 20 * MINUTE * DAILY * 3), {
+  ...Category("Chores", TOTAL(Spread(10 * MINUTE * DAILY + 20 * MINUTE * DAILY * 3, ...everyday)), {
     // Morning, evening, and shower. Plus time for cleaning/organization
     Routine: 0,
     Clean: 0,
@@ -141,3 +167,14 @@ function generatePieChartConfig(budgetConfig) {
 
 const chartConfig = generatePieChartConfig(budget)
 console.log(chartConfig)
+
+// Time per day of week (copied from `time.ts`, not very DRY)
+function fmtDuration(minutes) {
+  minutes = Math.round(minutes) // Round now instead of later to avoid weird "4h 60m"
+  const sign = minutes < 0 ? "-" : ""
+  const abs = Math.abs(minutes)
+  const hours = Math.floor(abs / HOUR)
+  const remaining = abs % HOUR
+  return [sign, hours ? `${hours}h ` : "", remaining || !hours ? `${remaining}m` : ""].join("")
+}
+console.log(dailyPlannedTime.map(fmtDuration))
