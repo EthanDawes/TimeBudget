@@ -1,22 +1,17 @@
 <script lang="ts">
   import {
     accumulateTime,
-    activeTimer,
     activeTimers,
     calculateCategoryOverage,
     calculateOverage,
-    finishTask,
     finishTaskById,
     switchTaskConcurrent,
     getUnallocatedTime,
-    loadBudgetConfig,
     loadWeeklyBudgetConfig,
     saveWeeklyBudgetConfig,
     loadWeeklyData,
-    startNewTask,
     getAvailableTime,
     reallocateTime,
-    validateReallocation,
     cleanupLongRunningTasks,
     splitTime,
     type AccumulatedTime,
@@ -135,6 +130,16 @@
       // Reset reallocation mode
       handleReallocationModeToggle()
     }
+  }
+
+  function addSubcat() {
+    const category = currentTasks[0]?.category
+    if (!category) {
+      alert("You must have a currently active task in the category you want to add");
+    }
+    const subcatName = prompt("New subcategory name")
+    if (!subcatName) return
+    budget[category].subcategories[subcatName] = 0
   }
 
   function handleUnallocatedClick() {
@@ -475,6 +480,7 @@
 </div>
 
 <div class="text-center">
+  <button class="border" onclick={addSubcat}>Add subcat</button>
   <a href={resolve("/settings")}>
     <button class="border">Settings</button>
   </a>
