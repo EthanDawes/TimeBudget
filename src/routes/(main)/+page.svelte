@@ -481,6 +481,12 @@
 
 <div class="text-center">
   <button class="border" onclick={addSubcat}>Add subcat</button>
+  <a href={resolve("/day")}>
+    <button class="border">Day history</button>
+  </a>
+  <a href={resolve("/week")}>
+    <button class="border">Week history</button>
+  </a>
   <a href={resolve("/settings")}>
     <button class="border">Settings</button>
   </a>
