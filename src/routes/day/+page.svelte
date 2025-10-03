@@ -1,4 +1,12 @@
+<script module>
+  export const tableHeight = "400vh"
+  export const headerHeight = "2rem"
+  export const labelWidth = "50px"
+</script>
+
 <script>
+  import CalEvent from "./CalEvent.svelte"
+
   const startTime = 0
   const endTime = 24
 
@@ -14,10 +22,10 @@
   const formatHour = (h) => `${h % 12 || 12} ${h >= 12 ? "pm" : "am"}`
 </script>
 
-<div class="h-full w-full">
-  <table class="h-[200vh] w-full table-fixed border-collapse">
+<div class="relative h-full w-full">
+  <table class="w-full table-fixed border-collapse" style:height={tableHeight}>
     <thead>
-      <tr>
+      <tr style:height={headerHeight}>
         <th class="w-[50px] max-w-[50px] min-w-[50px] border border-gray-300"></th>
         {#each days as day}
           <th class="truncate border border-gray-300 px-1">{day}</th>
@@ -37,4 +45,8 @@
       {/each}
     </tbody>
   </table>
+  <!-- Cal events -->
+  <CalEvent startHour={22} dayIndex={6} duration={1} color="red">
+    <!-- Contents, example -->
+  </CalEvent>
 </div>
