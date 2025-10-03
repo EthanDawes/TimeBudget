@@ -125,16 +125,14 @@
   let maxReallocationAmount = $derived.by(() => {
     if (!sourceSelection) return 0
     if (sourceSelection.subcategory) {
-      return Math.floor(
-        getAvailableTime(
-          budget,
-          accumulatedTime,
-          sourceSelection.category,
-          sourceSelection.subcategory,
-        ),
+      return getAvailableTime(
+        budget,
+        accumulatedTime,
+        sourceSelection.category,
+        sourceSelection.subcategory,
       )
     } else {
-      return Math.floor(getAvailableTime(budget, accumulatedTime, sourceSelection.category, null))
+      return getAvailableTime(budget, accumulatedTime, sourceSelection.category, null)
     }
   })
 
@@ -194,8 +192,8 @@
           <input
             type="range"
             min="0"
-            max={ceilTo(maxReallocationAmount, 15)}
-            step={15 * MINUTE}
+            max={ceilTo(maxReallocationAmount, 30)}
+            step={30 * MINUTE}
             bind:value={reallocationAmount}
             class="w-full"
           />
