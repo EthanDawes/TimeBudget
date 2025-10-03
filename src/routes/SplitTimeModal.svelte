@@ -234,7 +234,7 @@
 
 <dialog
   bind:this={modal}
-  class="modal w-full max-w-4xl rounded-lg p-3 sm:p-6"
+  class="modal mx-auto mt-4 max-w-4xl rounded-lg p-3 sm:p-6"
   onclick={(e) => e.target === modal && closeModal()}
 >
   <div class="modal-content">
@@ -386,11 +386,7 @@
     overflow-y: auto;
   }
 
-  @media (max-width: 640px) {
-    .modal {
-      margin: 1rem;
-      width: calc(100% - 2rem);
-      max-width: none;
-    }
+  .modal {
+    width: calc(100% - 2rem);
   }
 </style>
