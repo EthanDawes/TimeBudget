@@ -26,7 +26,6 @@
   import { exportSpentTime } from "$lib/db"
   import LabeledProgress from "./LabeledProgress.svelte"
   import SplitTimeModal from "./SplitTimeModal.svelte"
-  import RebudgetModal from "./RebudgetModal.svelte"
   import { resolve } from "$app/paths"
   import { fmtDuration, MINUTE, nowMinutes, parseTimeString } from "$lib/time"
   import type { TimeEntry } from "$lib/db"
@@ -38,9 +37,15 @@
   let unallocatedTime = $state(0)
   let currentTasks = $state<TimeEntry[]>([])
   let showReallocationMode = $state(false)
+  let sourceSelection = $state<{ category: string; subcategory?: string } | null>(null)
+  let targetSelection = $state<{ category: string; subcategory?: string } | null>(null)
+  let reallocationAmount = $state(0)
+  let reallocationAmountText = $state("")
   let showSplitTimeModal = $state(false)
 
-  let rebudgetModal = $state<RebudgetModal>()
+  $effect(() => {
+    if (reallocationAmount > maxReallocationAmount) reallocationAmount = maxReallocationAmount
+  })
 
   async function setState() {
     // Clean up any tasks that have been running for more than 24 hours
@@ -67,6 +72,13 @@
 
   function handleReallocationModeToggle() {
     showReallocationMode = !showReallocationMode
+    if (!showReallocationMode) {
+      // Reset selections when canceling
+      sourceSelection = null
+      targetSelection = null
+      reallocationAmount = 0
+      reallocationAmountText = ""
+    }
   }
 
   function handleCategoryClick(category: string, subcategory?: string) {
@@ -89,34 +101,68 @@
       return
     }
 
-    // Reallocation mode behavior - delegate to modal
-    rebudgetModal!.handleCategoryClick(category, subcategory)
-  }
+    // Reallocation mode behavior
+    const availableTime = subcategory
+      ? getAvailableTime(budget, accumulatedTime, category, subcategory)
+      : getAvailableTime(budget, accumulatedTime, category, null)
 
-  function handleRebudgetCommit(newBudget: BudgetConfig) {
-    budget = newBudget
-    saveWeeklyBudgetConfig(newBudget)
-    setState()
-    handleReallocationModeToggle()
-  }
+    const selection = { category, subcategory }
 
-  function handleRebudgetCancel() {
-    handleReallocationModeToggle()
-  }
-
-  function handleRebudgetFinish() {
-    const sourceSelection = rebudgetModal?.getSourceSelection()
-    if (!sourceSelection?.subcategory) {
-      alert("You cannot finish a category, only subcategories")
-      return
+    if (!sourceSelection) {
+      // For source selection, must have available time
+      if (availableTime <= 0) return
+      sourceSelection = selection
+    } else if (
+      !targetSelection &&
+      (sourceSelection.category !== category || sourceSelection.subcategory !== subcategory)
+    ) {
+      // For target selection, can always select (even if no available time)
+      targetSelection = selection
     }
+  }
 
-    // delete subcategory from this week's budget
-    delete budget[sourceSelection.category].subcategories[sourceSelection.subcategory]
+  function finishSubcat() {
+    if (commitReallocation()) {
+      if (!sourceSelection!.subcategory) {
+        alert("You cannot finish a category, only subcategories")
+        return
+      }
 
-    saveWeeklyBudgetConfig(budget)
-    setState()
-    handleReallocationModeToggle()
+      // delete subcategory from this week's budget
+      delete budget[sourceSelection!.category].subcategories[sourceSelection!.subcategory]
+
+      saveWeeklyBudgetConfig(budget)
+      setState()
+
+      // Reset reallocation mode
+      handleReallocationModeToggle()
+    }
+  }
+
+  // Returns success state
+  function commitReallocation() {
+    if (!sourceSelection || !targetSelection || reallocationAmount <= 0) return false
+
+    try {
+      const newBudget = reallocateTime(
+        budget,
+        sourceSelection.category,
+        sourceSelection.subcategory || null,
+        targetSelection.category,
+        targetSelection.subcategory || null,
+        reallocationAmount,
+      )
+
+      budget = newBudget
+      saveWeeklyBudgetConfig(newBudget)
+      setState()
+
+      // Caller must invoke `handleReallocationModeToggle`
+      return true
+    } catch (error) {
+      console.error("Error rebudgeting time:", error)
+      return false
+    }
   }
 
   function handleSplitTimeSubmit(splitEntries: SplitEntry[]) {
@@ -124,11 +170,138 @@
       setState()
     })
   }
+
+  function updateAmountFromText() {
+    try {
+      const parsed = parseTimeString(reallocationAmountText)
+      reallocationAmount = parsed
+    } catch {
+      // Invalid format, keep current amount
+    }
+  }
+
+  function updateTextFromAmount() {
+    const hours = Math.floor(reallocationAmount / 60)
+    const minutes = reallocationAmount % 60
+    let text = ""
+    if (hours > 0) text += hours + "h "
+    if (minutes > 0 || hours === 0) text += minutes + "m"
+    reallocationAmountText = text.trim()
+  }
+
+  // Update slider when text changes
+  $effect(() => {
+    updateAmountFromText()
+  })
+
+  // Update text when slider changes
+  $effect(() => {
+    updateTextFromAmount()
+  })
+
+  // Calculate max slider value based on source selection
+  let maxReallocationAmount = $derived.by(() => {
+    if (!sourceSelection) return 0
+    if (sourceSelection.subcategory) {
+      return getAvailableTime(
+        budget,
+        accumulatedTime,
+        sourceSelection.category,
+        sourceSelection.subcategory,
+      )
+    } else {
+      return getAvailableTime(budget, accumulatedTime, sourceSelection.category, null)
+    }
+  })
+
+  // Calculate preview budget
+  let previewBudget = $derived.by(() => {
+    if (!sourceSelection || !targetSelection || reallocationAmount <= 0) {
+      return budget
+    }
+
+    try {
+      return reallocateTime(
+        budget,
+        sourceSelection.category,
+        sourceSelection.subcategory || null,
+        targetSelection.category,
+        targetSelection.subcategory || null,
+        reallocationAmount,
+      )
+    } catch {
+      return budget
+    }
+  })
 </script>
 
 <svelte:head>
   <title>Time Budget Tracker</title>
 </svelte:head>
+
+{#if showReallocationMode}
+  <div class="fixed top-0 right-0 left-0 z-50 border-b bg-white p-4 shadow-lg">
+    <div class="mx-auto max-w-4xl">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-semibold">Rebudget Time</h3>
+        <div class="flex space-x-2">
+          <button
+            class="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-50"
+            onclick={() => {
+              commitReallocation()
+              handleReallocationModeToggle()
+            }}
+            disabled={!sourceSelection || !targetSelection || reallocationAmount <= 0}
+          >
+            Commit
+          </button>
+          <button class="rounded border px-3 py-1" onclick={handleReallocationModeToggle}>
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        <div class="flex-1">
+          <input
+            type="range"
+            min="0"
+            max={ceilTo(maxReallocationAmount, 30)}
+            step={30 * MINUTE}
+            bind:value={reallocationAmount}
+            class="w-full"
+          />
+        </div>
+        <input
+          type="text"
+          bind:value={reallocationAmountText}
+          placeholder="1h 30m"
+          class="w-24 rounded border px-3 py-1 text-center"
+        />
+        {#if reallocationAmount == maxReallocationAmount}
+          <button class="rounded bg-green-600 px-3 py-1 text-white" onclick={finishSubcat}>
+            Finish
+          </button>
+        {/if}
+      </div>
+
+      {#if sourceSelection || targetSelection}
+        <div class="mt-2 text-sm text-gray-600">
+          {#if sourceSelection}
+            From: {sourceSelection.category}{sourceSelection.subcategory
+              ? ` → ${sourceSelection.subcategory}`
+              : ""}
+          {/if}
+          {#if targetSelection}
+            | To: {targetSelection.category}{targetSelection.subcategory
+              ? ` → ${targetSelection.subcategory}`
+              : ""}
+          {/if}
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
 
 {#if currentTasks.length > 0 && !showReallocationMode}
   <div class="pb-1.5">
@@ -157,10 +330,8 @@
 {/if}
 
 <div class="flex flex-col gap-5 {showReallocationMode ? 'mt-32' : ''}">
-  {#each Object.entries(showReallocationMode ? rebudgetModal?.getPreviewBudget() || budget : budget) as [categoryName, category] (categoryName)}
+  {#each Object.entries(showReallocationMode ? previewBudget : budget) as [categoryName, category]}
     {@const categoryAvailable = getAvailableTime(budget, accumulatedTime, categoryName, null)}
-    {@const sourceSelection = rebudgetModal?.getSourceSelection()}
-    {@const targetSelection = rebudgetModal?.getTargetSelection()}
     {@const isSourceCategory =
       sourceSelection?.category === categoryName && !sourceSelection.subcategory}
     {@const isTargetCategory =
@@ -177,11 +348,8 @@
     >
       <LabeledProgress
         spent={categoryOverages[categoryName] ?? 0}
-        budget={(category as any).time -
-          (Object.values((category as any).subcategories) as number[]).reduce(
-            (sum: number, budget: number) => sum + budget,
-            0,
-          )}
+        budget={category.time -
+          Object.values(category.subcategories).reduce((sum, budget) => sum + budget, 0)}
         style={showReallocationMode
           ? !sourceSelection && categoryAvailable <= 0
             ? "cursor-not-allowed opacity-50 grayscale"
@@ -202,7 +370,7 @@
         </h2>
       </LabeledProgress>
 
-      {#each Object.entries((category as any).subcategories) as [subcategoryName, subcategoryBudget]}
+      {#each Object.entries(category.subcategories) as [subcategoryName, subcategoryBudget]}
         {@const subcategoryAvailable = getAvailableTime(
           budget,
           accumulatedTime,
@@ -225,7 +393,7 @@
         >
           <LabeledProgress
             spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
-            budget={subcategoryBudget as number}
+            budget={subcategoryBudget}
             style={showReallocationMode
               ? !sourceSelection && subcategoryAvailable <= 0
                 ? "cursor-not-allowed"
@@ -266,13 +434,3 @@
 </div>
 
 <SplitTimeModal {currentTasks} bind:isOpen={showSplitTimeModal} onsubmit={handleSplitTimeSubmit} />
-
-<RebudgetModal
-  bind:this={rebudgetModal}
-  bind:isOpen={showReallocationMode}
-  {budget}
-  {accumulatedTime}
-  onCommit={handleRebudgetCommit}
-  onCancel={handleRebudgetCancel}
-  onFinish={handleRebudgetFinish}
-/>
