@@ -4,23 +4,145 @@
   export const labelWidth = "50px"
 </script>
 
-<script>
+<script lang="ts">
   import CalEvent from "./CalEvent.svelte"
+  import { db, type TimeEntry } from "$lib/db"
+  import {
+    getWeekStart,
+    nowMinutes,
+    formatTimeFromMinutes,
+    MILLISECOND,
+    HOUR,
+    DAY,
+  } from "$lib/time"
+  import { loadBudgetConfig } from "$lib/budgetManager"
+  import { floorTo } from "$lib"
 
   const startTime = 0
   const endTime = 24
 
   const locale = navigator.language || "en-US"
-  const days = $state(
-    Array.from({ length: 7 }, (_, i) =>
-      new Intl.DateTimeFormat(locale, { weekday: "long" }).format(new Date(1970, 0, i + 5)),
-    ),
-  )
+
+  let currentWeekStart = $state(getWeekStart())
+  let timeEntries: TimeEntry[] = $state([])
+  let budgetConfig = $state(loadBudgetConfig())
+
+  // Color palette matching budget-generator.js
+  const palette = [
+    "#3366cc",
+    "#dc3912",
+    "#ff9900",
+    "#109618",
+    "#990099",
+    "#0099c6",
+    "#dd4477",
+    "#66aa00",
+    "#b82e2e",
+    "#316395",
+  ]
+
+  // Get category colors
+  const getCategoryColor = (category: string) => {
+    const categories = Object.keys(budgetConfig)
+    const index = categories.indexOf(category)
+    return palette[index % palette.length] || "#999999"
+  }
+
+  // Generate shades for subcategories
+  const getSubcategoryColor = (category: string, subcategory: string) => {
+    const baseColor = getCategoryColor(category)
+    const subcategories = Object.keys(budgetConfig[category]?.subcategories || {})
+    const index = subcategories.indexOf(subcategory)
+    const totalSubs = subcategories.length
+
+    // Create lighter/darker shades
+    const shade = 0.3 + (index / Math.max(totalSubs - 1, 1)) * 0.4 // 0.3 to 0.7 range
+    return adjustColorBrightness(baseColor, shade)
+  }
+
+  // Helper to adjust color brightness
+  const adjustColorBrightness = (hex: string, factor: number) => {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+
+    const newR = Math.round(r + (255 - r) * (1 - factor))
+    const newG = Math.round(g + (255 - g) * (1 - factor))
+    const newB = Math.round(b + (255 - b) * (1 - factor))
+
+    return `#${newR.toString(16).padStart(2, "0")}${newG.toString(16).padStart(2, "0")}${newB.toString(16).padStart(2, "0")}`
+  }
+  const days = $derived.by(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date((currentWeekStart + i * DAY) / MILLISECOND)
+      const dayName = new Intl.DateTimeFormat(locale, { weekday: "short" })
+        .format(date)
+        .toLowerCase()
+      const dayNum = date.getDate()
+      const suffix = getDaySuffix(dayNum)
+      return `${dayName} ${dayNum}${suffix}`
+    })
+  })
+
+  const getDaySuffix = (day: number) => {
+    if (day >= 11 && day <= 13) return "th"
+    switch (day % 10) {
+      case 1:
+        return "st"
+      case 2:
+        return "nd"
+      case 3:
+        return "rd"
+      default:
+        return "th"
+    }
+  }
+
+  const currentMonth = $derived.by(() => {
+    const date = new Date(currentWeekStart / MILLISECOND)
+    return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(date)
+  })
 
   const hours = $derived(Array.from({ length: endTime - startTime }, (_, i) => startTime + i))
 
-  const formatHour = (h) => `${h % 12 || 12} ${h >= 12 ? "pm" : "am"}`
+  const formatHour = (h: number) => `${h % 12 || 12} ${h >= 12 ? "pm" : "am"}`
+
+  // Navigate weeks
+  const previousWeek = () => {
+    currentWeekStart -= 7 * DAY
+    loadTimeEntries()
+  }
+
+  const nextWeek = () => {
+    currentWeekStart += 7 * DAY
+    loadTimeEntries()
+  }
+
+  // Load time entries for current week
+  const loadTimeEntries = async () => {
+    const weekEnd = currentWeekStart + 7 * DAY
+    timeEntries = await db.timeEntries
+      .where("timestampStart")
+      .between(currentWeekStart, weekEnd, true, false)
+      .toArray()
+  }
+  loadTimeEntries()
+
+  $effect(() => {
+    console.log("time entries", $state.snapshot(timeEntries))
+  })
 </script>
+
+<!-- Navigation Header -->
+<div class="mb-4 flex items-center justify-between bg-white p-4 shadow-sm">
+  <button onclick={previousWeek} class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600">
+    ← Previous
+  </button>
+  <h1 class="text-xl font-semibold">{currentMonth}</h1>
+  <button onclick={nextWeek} class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600">
+    Next →
+  </button>
+</div>
 
 <div class="relative h-full w-full">
   <table class="w-full table-fixed border-collapse" style:height={tableHeight}>
@@ -45,8 +167,20 @@
       {/each}
     </tbody>
   </table>
+
   <!-- Cal events -->
-  <CalEvent startHour={22} dayIndex={6} duration={1} color="red">
-    <!-- Contents, example -->
-  </CalEvent>
+  {#each timeEntries as entry (entry.id)}
+    {#if entry.duration}
+      {@const day = floorTo(entry.timestampStart, DAY)}
+      <CalEvent
+        startHour={(entry.timestampStart - day) / HOUR}
+        dayIndex={Math.floor((entry.timestampStart - currentWeekStart) / DAY)}
+        duration={entry.duration / HOUR}
+        color={getSubcategoryColor(entry.category, entry.subcategory)}
+      >
+        <div class="truncate font-semibold">{entry.subcategory}</div>
+        <div class="truncate text-xs opacity-75">{entry.category}</div>
+      </CalEvent>
+    {/if}
+  {/each}
 </div>

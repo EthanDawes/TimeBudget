@@ -5,6 +5,7 @@ export interface TimeEntry {
   id: number
   category: string
   subcategory: string
+  // Epoch minutes
   timestampStart: number
   duration?: number
 }

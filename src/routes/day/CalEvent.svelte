@@ -21,7 +21,7 @@
 </script>
 
 <div
-  class="absolute"
+  class="absolute truncate"
   style:background-color={color}
   style:left={`calc(${labelWidth} + ${cellWidth} * ${dayIndex})`}
   style:top={`calc(${headerHeight} + ${cellHeight} * ${startHour})`}
