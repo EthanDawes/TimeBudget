@@ -171,10 +171,31 @@
   <!-- Cal events -->
   {#each timeEntries as entry (entry.id)}
     {#if entry.duration}
-      {@const day = floorTo(entry.timestampStart, DAY)}
+      {@const entryDate = new Date(entry.timestampStart / MILLISECOND)}
+      {@const dayStartLocal = new Date(
+        entryDate.getFullYear(),
+        entryDate.getMonth(),
+        entryDate.getDate(),
+      )}
+      {@const dayStartMinutes = dayStartLocal.getTime() * MILLISECOND}
+      {@const localStartHour = (entry.timestampStart - dayStartMinutes) / HOUR}
+      {@const weekStartLocal = new Date(currentWeekStart / MILLISECOND)}
+      {@const entryDayStart = new Date(
+        entryDate.getFullYear(),
+        entryDate.getMonth(),
+        entryDate.getDate(),
+      )}
+      {@const weekDayStart = new Date(
+        weekStartLocal.getFullYear(),
+        weekStartLocal.getMonth(),
+        weekStartLocal.getDate(),
+      )}
+      {@const daysDiff = Math.round(
+        ((entryDayStart.getTime() - weekDayStart.getTime()) * MILLISECOND) / DAY,
+      )}
       <CalEvent
-        startHour={(entry.timestampStart - day) / HOUR}
-        dayIndex={Math.floor((entry.timestampStart - currentWeekStart) / DAY)}
+        startHour={localStartHour}
+        dayIndex={daysDiff}
         duration={entry.duration / HOUR}
         color={getSubcategoryColor(entry.category, entry.subcategory)}
       >
