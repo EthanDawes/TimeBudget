@@ -11,9 +11,10 @@
     dayIndex: number
     color: string
     children?: Snippet<[]>
+    onclick?: () => void
   }
 
-  let { startHour, duration, dayIndex, color, children }: EventProps = $props()
+  let { startHour, duration, dayIndex, color, children, onclick }: EventProps = $props()
 
   const cellHeight = `((${tableHeight} - ${headerHeight}) / 24)`
   // Use 100% instead of vw b/c chrome reduces space for scrollbar, firefox doesn't
@@ -22,11 +23,14 @@
 
 <div
   class="absolute truncate"
+  class:cursor-pointer={onclick}
+  class:hover:opacity-80={onclick}
   style:background-color={color}
   style:left={`calc(${labelWidth} + ${cellWidth} * ${dayIndex})`}
   style:top={`calc(${headerHeight} + ${cellHeight} * ${startHour})`}
   style:width={`calc(${cellWidth})`}
   style:height={`calc(${cellHeight} * ${duration})`}
+  {onclick}
 >
   {@render children?.()}
 </div>

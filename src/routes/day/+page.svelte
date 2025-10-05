@@ -27,6 +27,7 @@
   let timeEntries: TimeEntry[] = $state([])
   let budgetConfig = $state(loadBudgetConfig())
   let filteredWeekday: number | null = $state(null)
+  let filteredSubcategory: string | null = $state(null)
 
   // Color palette matching budget-generator.js
   const palette = [
@@ -144,11 +145,23 @@
     loadTimeEntries()
   }
 
+  // Filter to show specific subcategory
+  const filterSubcategory = (subcategory: string) => {
+    if (filteredSubcategory === subcategory) {
+      // If already filtering this subcategory, clear the filter
+      filteredSubcategory = null
+    } else {
+      filteredSubcategory = subcategory
+    }
+    loadTimeEntries()
+  }
+
   // Load time entries for current week or filtered weekday
   const loadTimeEntries = async () => {
+    let entries = []
+
     if (filteredWeekday !== null) {
       // Load entries for the specific day across 3 weeks
-      const entries = []
       for (let i = 0; i < 3; i++) {
         const weekOffset = i * 7 * DAY
         const dayStart = currentWeekStart - weekOffset + filteredWeekday * DAY
@@ -159,15 +172,21 @@
           .toArray()
         entries.push(...dayEntries)
       }
-      timeEntries = entries
     } else {
       // Load entries for the entire week
       const weekEnd = currentWeekStart + 7 * DAY
-      timeEntries = await db.timeEntries
+      entries = await db.timeEntries
         .where("timestampStart")
         .between(currentWeekStart, weekEnd, true, false)
         .toArray()
     }
+
+    // Apply subcategory filter if active
+    if (filteredSubcategory !== null) {
+      entries = entries.filter((entry) => entry.subcategory === filteredSubcategory)
+    }
+
+    timeEntries = entries
   }
   loadTimeEntries()
 
@@ -181,7 +200,17 @@
   <button onclick={previousWeek} class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600">
     ← Previous
   </button>
-  <h1 class="text-xl font-semibold">{currentMonth}</h1>
+  <div class="flex flex-col items-center">
+    <h1 class="text-xl font-semibold">{currentMonth}</h1>
+    {#if filteredSubcategory}
+      <div class="flex items-center gap-2 text-sm text-blue-600">
+        <span>Filtered: {filteredSubcategory}</span>
+        <button onclick={() => filterSubcategory(filteredSubcategory)} class="text-xs underline"
+          >clear</button
+        >
+      </div>
+    {/if}
+  </div>
   <button onclick={nextWeek} class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600">
     Next →
   </button>
@@ -237,6 +266,7 @@
           dayIndex={weekIndex >= 0 && weekIndex < 3 ? weekIndex : -1}
           duration={entry.duration / HOUR}
           color={getSubcategoryColor(entry.category, entry.subcategory)}
+          onclick={() => filterSubcategory(entry.subcategory)}
         >
           <div class="truncate font-semibold">{entry.subcategory}</div>
           <div class="truncate text-xs opacity-75">{entry.category}</div>
@@ -261,6 +291,7 @@
           dayIndex={daysDiff}
           duration={entry.duration / HOUR}
           color={getSubcategoryColor(entry.category, entry.subcategory)}
+          onclick={() => filterSubcategory(entry.subcategory)}
         >
           <div class="truncate font-semibold">{entry.subcategory}</div>
           <div class="truncate text-xs opacity-75">{entry.category}</div>
