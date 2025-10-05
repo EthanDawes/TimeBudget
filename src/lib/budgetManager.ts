@@ -1,5 +1,5 @@
 import { db, type TimeEntry } from "./db"
-import { DAY, getWeekStart, nowMinutes, fmtDuration } from "./time"
+import { DAY, getWeekStart, nowMinutes, fmtDuration, MILLISECOND } from "./time"
 import _ from "lodash"
 
 const STORAGE_KEYS = {
@@ -151,7 +151,16 @@ export async function finishTask() {
     return
   }
   console.assert(!task.duration) // Warn if trying to double-stop an entry
-  await db.timeEntries.update(task.id, { duration: nowMinutes() - task.timestampStart })
+
+  const endTime = nowMinutes()
+  const duration = endTime - task.timestampStart
+
+  // Check if task crosses date boundary and split if necessary
+  if (crossesDateBoundary(task.timestampStart, endTime)) {
+    await splitTaskAtDateBoundary(task, endTime)
+  } else {
+    await db.timeEntries.update(task.id, { duration })
+  }
 }
 
 export async function finishTaskById(taskId: number) {
@@ -172,7 +181,15 @@ export async function finishTaskById(taskId: number) {
     return
   }
 
-  await db.timeEntries.update(taskId, { duration: nowMinutes() - task.timestampStart })
+  const endTime = nowMinutes()
+  const duration = endTime - task.timestampStart
+
+  // Check if task crosses date boundary and split if necessary
+  if (crossesDateBoundary(task.timestampStart, endTime)) {
+    await splitTaskAtDateBoundary(task, endTime)
+  } else {
+    await db.timeEntries.update(taskId, { duration })
+  }
 }
 
 export async function switchTaskConcurrent(category: string, subcategory: string) {
@@ -360,4 +377,52 @@ export async function splitTime(splitEntries: SplitEntry[]): Promise<void> {
       duration: duration,
     })
   }
+}
+
+// Helper function to check if a task crosses a date boundary
+function crossesDateBoundary(startTime: number, endTime: number): boolean {
+  // Convert minutes-since-epoch to Date objects
+  const startDate = new Date(startTime / MILLISECOND)
+  const endDate = new Date(endTime / MILLISECOND)
+
+  // Check if they're on different calendar dates
+  return (
+    startDate.getDate() !== endDate.getDate() ||
+    startDate.getMonth() !== endDate.getMonth() ||
+    startDate.getFullYear() !== endDate.getFullYear()
+  )
+}
+
+// Helper function to get midnight timestamp for a given date
+function getMidnight(timestamp: number): number {
+  const date = new Date(timestamp / MILLISECOND)
+  const midnight = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate() + 1, // Next day at 00:00
+    0,
+    0,
+    0,
+    0,
+  )
+  return midnight.getTime() * MILLISECOND
+}
+
+// Split a task that crosses date boundary
+async function splitTaskAtDateBoundary(task: TimeEntry, endTime: number): Promise<void> {
+  const midnight = getMidnight(task.timestampStart)
+
+  // Update the original task to end at midnight
+  const firstDuration = midnight - task.timestampStart
+  await db.timeEntries.update(task.id, { duration: firstDuration })
+
+  // Create a new task starting at midnight
+  await db.timeEntries.add({
+    category: task.category,
+    subcategory: task.subcategory,
+    timestampStart: midnight,
+    duration: endTime - midnight,
+  })
+
+  console.log(`Split task across date boundary: ${task.category}/${task.subcategory}`)
 }
