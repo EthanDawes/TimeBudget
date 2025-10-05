@@ -25,39 +25,6 @@
   let splitEntries: SplitEntry[] = $state([])
   let modal: HTMLDialogElement
 
-  // Generate time suggestions (every 15 minutes)
-  function generateTimeSuggestions(
-    baseTime: number,
-    isStartTime: boolean = true,
-  ): Array<{ time: number; text: string; duration: string }> {
-    const suggestions = []
-    const now = nowMinutes()
-    const firstTaskStart = currentTasks[0]?.timestampStart || now
-
-    // For start times: don't show times before the first task or after current time
-    // For end times: show reasonable range around the base time
-    const minTime = isStartTime ? firstTaskStart : baseTime - 2 * HOUR
-    const maxTime = isStartTime ? now : baseTime + 4 * HOUR
-
-    // Generate suggestions in 15-minute increments
-    for (let time = minTime; time <= maxTime; time += 15 * MINUTE) {
-      // Convert minutes-since-epoch to local time for display
-      const date = new Date(time / MILLISECOND)
-      const hours = date.getHours()
-      const minutes = date.getMinutes()
-      const timeText = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
-      const duration = fmtDuration(Math.abs(time - baseTime))
-
-      suggestions.push({
-        time,
-        text: timeText,
-        duration: `(${duration})`,
-      })
-    }
-
-    return suggestions
-  }
-
   function initializeSplitEntries() {
     if (currentTasks.length === 0) return
 
@@ -253,15 +220,7 @@
                   ? 'bg-gray-200'
                   : ''}"
                 placeholder="12:30"
-                list={`start-times-${entry.id}`}
               />
-              {#if index > 0}
-                <datalist id={`start-times-${entry.id}`}>
-                  {#each generateTimeSuggestions(entry.startTime || nowMinutes(), true) as suggestion}
-                    <option value={suggestion.text}>{suggestion.text} {suggestion.duration}</option>
-                  {/each}
-                </datalist>
-              {/if}
             </div>
 
             <!-- Category/Subcategory dropdown -->
@@ -321,13 +280,7 @@
                   oninput={(e) => updateEndTime(index, (e.target as HTMLInputElement).value)}
                   class="w-16 rounded border px-1 py-1 text-center text-sm sm:w-20 sm:px-2"
                   placeholder="13:30"
-                  list={`end-times-${entry.id}`}
                 />
-                <datalist id={`end-times-${entry.id}`}>
-                  {#each generateTimeSuggestions(entry.endTime || (entry.startTime || nowMinutes()) + HOUR, false) as suggestion}
-                    <option value={suggestion.text}>{suggestion.text} {suggestion.duration}</option>
-                  {/each}
-                </datalist>
               </div>
             {/if}
           </div>
