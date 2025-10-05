@@ -18,7 +18,7 @@
     type BudgetConfig,
     type SplitEntry,
   } from "$lib/budgetManager"
-  import { exportSpentTime, db } from "$lib/db"
+  import { exportSpentTime } from "$lib/db"
   import LabeledProgress from "./LabeledProgress.svelte"
   import SplitTimeModal from "./SplitTimeModal.svelte"
   import { resolve } from "$app/paths"
@@ -135,7 +135,7 @@
   function addSubcat() {
     const category = currentTasks[0]?.category
     if (!category) {
-      alert("You must have a currently active task in the category you want to add")
+      alert("You must have a currently active task in the category you want to add");
     }
     const subcatName = prompt("New subcategory name")
     if (!subcatName) return
@@ -188,26 +188,6 @@
     splitTime(splitEntries).then(() => {
       setState()
     })
-  }
-
-  async function undo() {
-    try {
-      // Get the last time entry
-      const lastEntry = await db.timeEntries.orderBy("id").last()
-
-      if (lastEntry) {
-        // Delete the last entry
-        await db.timeEntries.delete(lastEntry.id)
-
-        // Reload the page to refresh all state
-        window.location.reload()
-      } else {
-        alert("No entries to undo")
-      }
-    } catch (error) {
-      console.error("Error undoing last entry:", error)
-      alert("Failed to undo last entry")
-    }
   }
 
   function updateAmountFromText() {
@@ -507,7 +487,6 @@
   <a href={resolve("/week")}>
     <button class="border">Week history</button>
   </a>
-  <button onclick={undo}>Undo</button>
   <a href={resolve("/settings")}>
     <button class="border">Settings</button>
   </a>
