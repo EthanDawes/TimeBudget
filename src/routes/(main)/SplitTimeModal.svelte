@@ -167,6 +167,24 @@
         alert(`Entry ${i + 1}: End time cannot be empty for concurrent tasks`)
         return
       }
+
+      if (isNaN(entry.startTime)) {
+        alert(`Entry ${i + 1}: "${entry.startTimeText}" is not a valid time or duration`)
+        return
+      }
+
+      if (Date.now() < entry.startTime / MILLISECOND) {
+        alert(`Entry ${i + 1}: Start time cannot be in the future`)
+        return
+      }
+
+      if (
+        i < splitEntries.length - 1 &&
+        splitEntries[i + 1].startTime < splitEntries[i].startTime
+      ) {
+        alert(`Entry ${i + 1}: End time cannot be before start time`)
+        return
+      }
     }
 
     // Call the submit handler prop
