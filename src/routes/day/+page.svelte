@@ -26,6 +26,7 @@
   let currentWeekStart = $state(getWeekStart())
   let timeEntries: TimeEntry[] = $state([])
   let budgetConfig = $state(loadBudgetConfig())
+  let filteredWeekday: number | null = $state(null)
 
   // Color palette matching budget-generator.js
   const palette = [
@@ -73,6 +74,20 @@
     return `#${newR.toString(16).padStart(2, "0")}${newG.toString(16).padStart(2, "0")}${newB.toString(16).padStart(2, "0")}`
   }
   const days = $derived.by(() => {
+    if (filteredWeekday !== null) {
+      // Show past 3 weeks for the selected day
+      return Array.from({ length: 3 }, (_, i) => {
+        const weekOffset = i * 7 * DAY
+        const date = new Date((currentWeekStart - weekOffset + filteredWeekday * DAY) / MILLISECOND)
+        const dayName = new Intl.DateTimeFormat(locale, { weekday: "short" })
+          .format(date)
+          .toLowerCase()
+        const dayNum = date.getDate()
+        const suffix = getDaySuffix(dayNum)
+        return `${dayName} ${dayNum}${suffix}`
+      })
+    }
+
     return Array.from({ length: 7 }, (_, i) => {
       const date = new Date((currentWeekStart + i * DAY) / MILLISECOND)
       const dayName = new Intl.DateTimeFormat(locale, { weekday: "short" })
@@ -118,13 +133,41 @@
     loadTimeEntries()
   }
 
-  // Load time entries for current week
+  // Filter to show specific weekday for past 3 weeks
+  const filterWeekday = (dayIndex: number) => {
+    if (filteredWeekday === dayIndex) {
+      // If already filtering this day, clear the filter
+      filteredWeekday = null
+    } else {
+      filteredWeekday = dayIndex
+    }
+    loadTimeEntries()
+  }
+
+  // Load time entries for current week or filtered weekday
   const loadTimeEntries = async () => {
-    const weekEnd = currentWeekStart + 7 * DAY
-    timeEntries = await db.timeEntries
-      .where("timestampStart")
-      .between(currentWeekStart, weekEnd, true, false)
-      .toArray()
+    if (filteredWeekday !== null) {
+      // Load entries for the specific day across 3 weeks
+      const entries = []
+      for (let i = 0; i < 3; i++) {
+        const weekOffset = i * 7 * DAY
+        const dayStart = currentWeekStart - weekOffset + filteredWeekday * DAY
+        const dayEnd = dayStart + DAY
+        const dayEntries = await db.timeEntries
+          .where("timestampStart")
+          .between(dayStart, dayEnd, true, false)
+          .toArray()
+        entries.push(...dayEntries)
+      }
+      timeEntries = entries
+    } else {
+      // Load entries for the entire week
+      const weekEnd = currentWeekStart + 7 * DAY
+      timeEntries = await db.timeEntries
+        .where("timestampStart")
+        .between(currentWeekStart, weekEnd, true, false)
+        .toArray()
+    }
   }
   loadTimeEntries()
 
@@ -149,8 +192,14 @@
     <thead>
       <tr style:height={headerHeight}>
         <th class="w-[50px] max-w-[50px] min-w-[50px] border border-gray-300"></th>
-        {#each days as day}
-          <th class="truncate border border-gray-300 px-1">{day}</th>
+        {#each days as day, idx}
+          <th
+            class="cursor-pointer truncate border border-gray-300 px-1 hover:bg-gray-100"
+            class:bg-blue-100={filteredWeekday !== null &&
+              (filteredWeekday === idx || (filteredWeekday !== null && idx < 3))}
+            onclick={() => filterWeekday(filteredWeekday !== null ? filteredWeekday : idx)}
+            >{day}</th
+          >
         {/each}
       </tr>
     </thead>
@@ -179,29 +228,44 @@
       )}
       {@const dayStartMinutes = dayStartLocal.getTime() * MILLISECOND}
       {@const localStartHour = (entry.timestampStart - dayStartMinutes) / HOUR}
-      {@const weekStartLocal = new Date(currentWeekStart / MILLISECOND)}
-      {@const entryDayStart = new Date(
-        entryDate.getFullYear(),
-        entryDate.getMonth(),
-        entryDate.getDate(),
-      )}
-      {@const weekDayStart = new Date(
-        weekStartLocal.getFullYear(),
-        weekStartLocal.getMonth(),
-        weekStartLocal.getDate(),
-      )}
-      {@const daysDiff = Math.round(
-        ((entryDayStart.getTime() - weekDayStart.getTime()) * MILLISECOND) / DAY,
-      )}
-      <CalEvent
-        startHour={localStartHour}
-        dayIndex={daysDiff}
-        duration={entry.duration / HOUR}
-        color={getSubcategoryColor(entry.category, entry.subcategory)}
-      >
-        <div class="truncate font-semibold">{entry.subcategory}</div>
-        <div class="truncate text-xs opacity-75">{entry.category}</div>
-      </CalEvent>
+
+      {#if filteredWeekday !== null}
+        {@const timeDiff = currentWeekStart + filteredWeekday * DAY - entry.timestampStart}
+        {@const weekIndex = Math.floor(timeDiff / (7 * DAY))}
+        <CalEvent
+          startHour={localStartHour}
+          dayIndex={weekIndex >= 0 && weekIndex < 3 ? weekIndex : -1}
+          duration={entry.duration / HOUR}
+          color={getSubcategoryColor(entry.category, entry.subcategory)}
+        >
+          <div class="truncate font-semibold">{entry.subcategory}</div>
+          <div class="truncate text-xs opacity-75">{entry.category}</div>
+        </CalEvent>
+      {:else}
+        {@const weekStartLocal = new Date(currentWeekStart / MILLISECOND)}
+        {@const entryDayStart = new Date(
+          entryDate.getFullYear(),
+          entryDate.getMonth(),
+          entryDate.getDate(),
+        )}
+        {@const weekDayStart = new Date(
+          weekStartLocal.getFullYear(),
+          weekStartLocal.getMonth(),
+          weekStartLocal.getDate(),
+        )}
+        {@const daysDiff = Math.round(
+          ((entryDayStart.getTime() - weekDayStart.getTime()) * MILLISECOND) / DAY,
+        )}
+        <CalEvent
+          startHour={localStartHour}
+          dayIndex={daysDiff}
+          duration={entry.duration / HOUR}
+          color={getSubcategoryColor(entry.category, entry.subcategory)}
+        >
+          <div class="truncate font-semibold">{entry.subcategory}</div>
+          <div class="truncate text-xs opacity-75">{entry.category}</div>
+        </CalEvent>
+      {/if}
     {/if}
   {/each}
 </div>
