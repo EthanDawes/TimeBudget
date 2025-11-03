@@ -70,8 +70,9 @@ const budget = {
     ECELabs: Spread(1 * HOUR, T) + Spread(2 * HOUR, W) + 7 * HOUR, // Team lead, SW & general meeting
     Internships: Spread(1 * HOUR * DAILY, M, R, S),
     RHA: Spread(1 * HOUR, M) + Spread(1 * HOUR, W) + Spread(45 * MINUTE, W) + 1.25 * HOUR, // Senate, 1:1, Exec, resp. sometimes PRT. 4hr total
+    RA: 6.5 * HOUR,
   }),
-  ...Category("RA", PLUS(0), {
+  /*...Category("RA", PLUS(0), {
     // 1 hr rounds, 1 hr newsletter, 1 hr shopping, 2 hr event execution
     "Hall Club": Spread(1 * HOUR, M),
     Staff: Spread(1 * HOUR, M),
@@ -80,20 +81,16 @@ const budget = {
     Residents: 1 * HOUR, // Interact, answer questions
     Event: 2 * HOUR, // Include planning
     Duty: Spread(1 * HOUR, J),
-  }),
+  }),*/
   ...Category("Wellness", PLUS(0), {
     Eat: Spread(6.5 * HOUR, ...everyday), // My fancy formula turned out to be too much time
     // TODO: this would be a good use case for more intelligent per-day budgeting. If I don't spend 30 min eating, I can assume I saved that time and add to unalloc time
     Sleep: Spread(8 * HOUR * DAILY, ...everyday),
     Exercise: 30 * MINUTE * DAILY,
     Mindfullness: 10 * MINUTE * DAILY,
-  }),
-  ...Category("Chores", TOTAL(Spread(10 * MINUTE * DAILY + 20 * MINUTE * DAILY * 3, ...everyday)), {
+    // Chores includes Routine, Clean, Shower, and Schedule (future planning)
     // Morning, evening, and shower. Plus time for cleaning/organization
-    Routine: 0,
-    Clean: 0,
-    Shower: 0,
-    Schedule: 0, // Includes future planning
+    Chores: Spread(10 * MINUTE * DAILY + 20 * MINUTE * DAILY * 3, ...everyday),
   }),
   ...Category("Curiosity", TOTAL(15 * HOUR), {
     Learning: 5 * HOUR,
