@@ -28,6 +28,7 @@
   let budgetConfig = $state(loadBudgetConfig())
   let filteredWeekday: number | null = $state(null)
   let filteredSubcategory: string | null = $state(null)
+  let groupingMode = $state(false)
 
   // Color palette matching budget-generator.js
   const palette = [
@@ -74,6 +75,56 @@
 
     return `#${newR.toString(16).padStart(2, "0")}${newG.toString(16).padStart(2, "0")}${newB.toString(16).padStart(2, "0")}`
   }
+
+  // Group entries by category and subcategory for grouped view
+  const groupedEntries = $derived.by(() => {
+    if (!groupingMode) return timeEntries
+
+    // Group by category -> subcategory
+    const groups: { [key: string]: { [key: string]: TimeEntry[] } } = {}
+
+    timeEntries.forEach((entry) => {
+      if (!groups[entry.category]) {
+        groups[entry.category] = {}
+      }
+      if (!groups[entry.category][entry.subcategory]) {
+        groups[entry.category][entry.subcategory] = []
+      }
+      groups[entry.category][entry.subcategory].push(entry)
+    })
+
+    // Flatten into array with virtual positions
+    const flattened: (TimeEntry & { virtualStartHour: number })[] = []
+    let currentVirtualHour = 0
+    const subcategorySpacing = 1.5 // Hours between subcategories
+    const categorySpacing = 0.5 // Extra spacing between categories
+
+    Object.keys(groups)
+      .sort()
+      .forEach((category, categoryIndex) => {
+        if (categoryIndex > 0) {
+          currentVirtualHour += categorySpacing
+        }
+
+        Object.keys(groups[category])
+          .sort()
+          .forEach((subcategory, subIndex) => {
+            if (subIndex > 0) {
+              currentVirtualHour += subcategorySpacing
+            }
+
+            groups[category][subcategory].forEach((entry) => {
+              flattened.push({
+                ...entry,
+                virtualStartHour: currentVirtualHour,
+              })
+              currentVirtualHour += 0.3 // Small offset between individual entries
+            })
+          })
+      })
+
+    return flattened
+  })
   const days = $derived.by(() => {
     if (filteredWeekday !== null) {
       // Show past 3 weeks for the selected day
@@ -132,6 +183,11 @@
   const nextWeek = () => {
     currentWeekStart += 7 * DAY
     loadTimeEntries()
+  }
+
+  // Toggle grouping mode
+  const toggleGrouping = () => {
+    groupingMode = !groupingMode
   }
 
   // Filter to show specific weekday for past 3 weeks
@@ -197,9 +253,24 @@
 
 <!-- Navigation Header -->
 <div class="mb-4 flex items-center justify-between bg-white p-4 shadow-sm">
-  <button onclick={previousWeek} class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600">
-    ← Previous
-  </button>
+  <div class="flex items-center gap-2">
+    <button
+      onclick={previousWeek}
+      class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600"
+    >
+      ← Previous
+    </button>
+    <button
+      onclick={toggleGrouping}
+      class="rounded px-3 py-1 text-white transition-colors"
+      class:bg-green-500={groupingMode}
+      class:hover:bg-green-600={groupingMode}
+      class:bg-gray-500={!groupingMode}
+      class:hover:bg-gray-600={!groupingMode}
+    >
+      {groupingMode ? "Grouped" : "Group"}
+    </button>
+  </div>
   <div class="flex flex-col items-center">
     <h1 class="text-xl font-semibold">{currentMonth}</h1>
     {#if filteredSubcategory}
@@ -209,6 +280,9 @@
           >clear</button
         >
       </div>
+    {/if}
+    {#if groupingMode}
+      <div class="text-xs text-gray-600">Events grouped by category & subcategory</div>
     {/if}
   </div>
   <button onclick={nextWeek} class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600">
@@ -247,7 +321,7 @@
   </table>
 
   <!-- Cal events -->
-  {#each timeEntries as entry (entry.id)}
+  {#each groupedEntries as entry (entry.id)}
     {#if entry.duration}
       {@const entryDate = new Date(entry.timestampStart / MILLISECOND)}
       {@const dayStartLocal = new Date(
@@ -256,7 +330,9 @@
         entryDate.getDate(),
       )}
       {@const dayStartMinutes = dayStartLocal.getTime() * MILLISECOND}
-      {@const localStartHour = (entry.timestampStart - dayStartMinutes) / HOUR}
+      {@const localStartHour = groupingMode
+        ? entry.virtualStartHour
+        : (entry.timestampStart - dayStartMinutes) / HOUR}
 
       {#if filteredWeekday !== null}
         {@const timeDiff = currentWeekStart + filteredWeekday * DAY - entry.timestampStart}
