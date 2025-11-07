@@ -340,7 +340,7 @@
       </p>
     {/each}
     <div class="flex justify-around">
-      <button class="border" onclick={() => (showSplitTimeModal = true)}>Split tracking</button>
+      <button class="border" onclick={() => (showSplitTimeModal = true)}>Change tracking</button>
       <button class="border" onclick={handleReallocationModeToggle}>Rebudget</button>
     </div>
   </div>
