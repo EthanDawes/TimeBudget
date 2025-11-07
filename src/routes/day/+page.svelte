@@ -218,7 +218,7 @@
 
 <div class="relative h-full w-full">
   <table class="w-full table-fixed border-collapse" style:height={tableHeight}>
-    <thead>
+    <thead class="sticky top-0 bg-white">
       <tr style:height={headerHeight}>
         <th class="w-[50px] max-w-[50px] min-w-[50px] border border-gray-300"></th>
         {#each days as day, idx}
