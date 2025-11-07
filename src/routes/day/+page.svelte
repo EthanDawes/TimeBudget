@@ -28,7 +28,6 @@
   let budgetConfig = $state(loadBudgetConfig())
   let filteredWeekday: number | null = $state(null)
   let filteredSubcategory: string | null = $state(null)
-  let groupedView = $state(false)
 
   // Color palette matching budget-generator.js
   const palette = [
@@ -75,25 +74,6 @@
 
     return `#${newR.toString(16).padStart(2, "0")}${newG.toString(16).padStart(2, "0")}${newB.toString(16).padStart(2, "0")}`
   }
-
-  // Group entries by category and subcategory
-  const groupedEntries = $derived.by(() => {
-    if (!groupedView) return {}
-
-    const groups: Record<string, Record<string, TimeEntry[]>> = {}
-
-    timeEntries.forEach((entry) => {
-      if (!groups[entry.category]) {
-        groups[entry.category] = {}
-      }
-      if (!groups[entry.category][entry.subcategory]) {
-        groups[entry.category][entry.subcategory] = []
-      }
-      groups[entry.category][entry.subcategory].push(entry)
-    })
-
-    return groups
-  })
   const days = $derived.by(() => {
     if (filteredWeekday !== null) {
       // Show past 3 weeks for the selected day
@@ -222,169 +202,101 @@
   </button>
   <div class="flex flex-col items-center">
     <h1 class="text-xl font-semibold">{currentMonth}</h1>
-    <div class="flex items-center gap-4">
-      <button
-        onclick={() => (groupedView = !groupedView)}
-        class="rounded px-3 py-1 text-sm {groupedView
-          ? 'bg-green-500 text-white'
-          : 'bg-gray-200 text-gray-700'} hover:opacity-80"
-      >
-        {groupedView ? "Calendar View" : "Grouped View"}
-      </button>
-      {#if filteredSubcategory}
-        <div class="flex items-center gap-2 text-sm text-blue-600">
-          <span>Filtered: {filteredSubcategory}</span>
-          <button onclick={() => filterSubcategory(filteredSubcategory)} class="text-xs underline"
-            >clear</button
-          >
-        </div>
-      {/if}
-    </div>
+    {#if filteredSubcategory}
+      <div class="flex items-center gap-2 text-sm text-blue-600">
+        <span>Filtered: {filteredSubcategory}</span>
+        <button onclick={() => filterSubcategory(filteredSubcategory)} class="text-xs underline"
+          >clear</button
+        >
+      </div>
+    {/if}
   </div>
   <button onclick={nextWeek} class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600">
     Next →
   </button>
 </div>
 
-{#if groupedView}
-  <!-- Grouped View -->
-  <div class="space-y-6 p-4">
-    {#each Object.entries(groupedEntries) as [category, subcategories]}
-      <div class="rounded-lg border border-gray-300 bg-white shadow-sm">
-        <div
-          class="border-b border-gray-200 p-4"
-          style:background-color={getCategoryColor(category) + "20"}
-        >
-          <h2 class="text-lg font-semibold" style:color={getCategoryColor(category)}>{category}</h2>
-        </div>
-        <div class="space-y-3 p-4">
-          {#each Object.entries(subcategories) as [subcategory, entries]}
-            <div
-              class="border-l-4 pl-4"
-              style:border-left-color={getSubcategoryColor(category, subcategory)}
-            >
-              <div class="flex items-center justify-between">
-                <h3
-                  class="cursor-pointer font-medium hover:underline"
-                  style:color={getSubcategoryColor(category, subcategory)}
-                  onclick={() => filterSubcategory(subcategory)}
-                >
-                  {subcategory}
-                </h3>
-                <span class="text-sm text-gray-500">
-                  {entries.length} event{entries.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-              <div class="mt-2 space-y-1">
-                {#each entries as entry}
-                  {@const totalMinutes = entry.duration / (60 * 1000)}
-                  {@const hours = Math.floor(totalMinutes / 60)}
-                  {@const minutes = Math.floor(totalMinutes % 60)}
-                  {@const entryDate = new Date(entry.timestampStart / MILLISECOND)}
-                  <div
-                    class="flex items-center justify-between rounded bg-gray-50 px-2 py-1 text-sm text-gray-600"
-                  >
-                    <span
-                      >{entryDate.toLocaleDateString()}
-                      {entryDate.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}</span
-                    >
-                    <span>{hours > 0 ? `${hours}h ` : ""}{minutes}m</span>
-                  </div>
-                {/each}
-              </div>
-            </div>
-          {/each}
-        </div>
-      </div>
-    {/each}
-  </div>
-{:else}
-  <!-- Calendar View -->
-  <div class="relative h-full w-full">
-    <table class="w-full table-fixed border-collapse" style:height={tableHeight}>
-      <thead class="sticky top-0 bg-white">
-        <tr style:height={headerHeight}>
-          <th class="w-[50px] max-w-[50px] min-w-[50px] border border-gray-300"></th>
-          {#each days as day, idx}
-            <th
-              class="cursor-pointer truncate border border-gray-300 px-1 hover:bg-gray-100"
-              class:bg-blue-100={filteredWeekday !== null &&
-                (filteredWeekday === idx || (filteredWeekday !== null && idx < 3))}
-              onclick={() => filterWeekday(filteredWeekday !== null ? filteredWeekday : idx)}
-              >{day}</th
-            >
+<div class="relative h-full w-full">
+  <table class="w-full table-fixed border-collapse" style:height={tableHeight}>
+    <thead class="sticky top-0 bg-white">
+      <tr style:height={headerHeight}>
+        <th class="w-[50px] max-w-[50px] min-w-[50px] border border-gray-300"></th>
+        {#each days as day, idx}
+          <th
+            class="cursor-pointer truncate border border-gray-300 px-1 hover:bg-gray-100"
+            class:bg-blue-100={filteredWeekday !== null &&
+              (filteredWeekday === idx || (filteredWeekday !== null && idx < 3))}
+            onclick={() => filterWeekday(filteredWeekday !== null ? filteredWeekday : idx)}
+            >{day}</th
+          >
+        {/each}
+      </tr>
+    </thead>
+    <tbody>
+      {#each hours as hour}
+        <tr>
+          <td class="border border-gray-300 text-center align-top text-sm">
+            <span class="inline-block -translate-y-2">{formatHour(hour)}</span>
+          </td>
+          {#each days as _}
+            <td class="border border-gray-300 align-top"></td>
           {/each}
         </tr>
-      </thead>
-      <tbody>
-        {#each hours as hour}
-          <tr>
-            <td class="border border-gray-300 text-center align-top text-sm">
-              <span class="inline-block -translate-y-2">{formatHour(hour)}</span>
-            </td>
-            {#each days as _}
-              <td class="border border-gray-300 align-top"></td>
-            {/each}
-          </tr>
-        {/each}
-      </tbody>
-    </table>
+      {/each}
+    </tbody>
+  </table>
 
-    <!-- Cal events -->
-    {#each timeEntries as entry (entry.id)}
-      {#if entry.duration}
-        {@const entryDate = new Date(entry.timestampStart / MILLISECOND)}
-        {@const dayStartLocal = new Date(
+  <!-- Cal events -->
+  {#each timeEntries as entry (entry.id)}
+    {#if entry.duration}
+      {@const entryDate = new Date(entry.timestampStart / MILLISECOND)}
+      {@const dayStartLocal = new Date(
+        entryDate.getFullYear(),
+        entryDate.getMonth(),
+        entryDate.getDate(),
+      )}
+      {@const dayStartMinutes = dayStartLocal.getTime() * MILLISECOND}
+      {@const localStartHour = (entry.timestampStart - dayStartMinutes) / HOUR}
+
+      {#if filteredWeekday !== null}
+        {@const timeDiff = currentWeekStart + filteredWeekday * DAY - entry.timestampStart}
+        {@const weekIndex = Math.floor(timeDiff / (7 * DAY))}
+        <CalEvent
+          startHour={localStartHour}
+          dayIndex={weekIndex >= 0 && weekIndex < 3 ? weekIndex : -1}
+          duration={entry.duration / HOUR}
+          color={getSubcategoryColor(entry.category, entry.subcategory)}
+          onclick={() => filterSubcategory(entry.subcategory)}
+        >
+          <div class="truncate font-semibold">{entry.subcategory}</div>
+          <div class="truncate text-xs opacity-75">{entry.category}</div>
+        </CalEvent>
+      {:else}
+        {@const weekStartLocal = new Date(currentWeekStart / MILLISECOND)}
+        {@const entryDayStart = new Date(
           entryDate.getFullYear(),
           entryDate.getMonth(),
           entryDate.getDate(),
         )}
-        {@const dayStartMinutes = dayStartLocal.getTime() * MILLISECOND}
-        {@const localStartHour = (entry.timestampStart - dayStartMinutes) / HOUR}
-
-        {#if filteredWeekday !== null}
-          {@const timeDiff = currentWeekStart + filteredWeekday * DAY - entry.timestampStart}
-          {@const weekIndex = Math.floor(timeDiff / (7 * DAY))}
-          <CalEvent
-            startHour={localStartHour}
-            dayIndex={weekIndex >= 0 && weekIndex < 3 ? weekIndex : -1}
-            duration={entry.duration / HOUR}
-            color={getSubcategoryColor(entry.category, entry.subcategory)}
-            onclick={() => filterSubcategory(entry.subcategory)}
-          >
-            <div class="truncate font-semibold">{entry.subcategory}</div>
-            <div class="truncate text-xs opacity-75">{entry.category}</div>
-          </CalEvent>
-        {:else}
-          {@const weekStartLocal = new Date(currentWeekStart / MILLISECOND)}
-          {@const entryDayStart = new Date(
-            entryDate.getFullYear(),
-            entryDate.getMonth(),
-            entryDate.getDate(),
-          )}
-          {@const weekDayStart = new Date(
-            weekStartLocal.getFullYear(),
-            weekStartLocal.getMonth(),
-            weekStartLocal.getDate(),
-          )}
-          {@const daysDiff = Math.round(
-            ((entryDayStart.getTime() - weekDayStart.getTime()) * MILLISECOND) / DAY,
-          )}
-          <CalEvent
-            startHour={localStartHour}
-            dayIndex={daysDiff}
-            duration={entry.duration / HOUR}
-            color={getSubcategoryColor(entry.category, entry.subcategory)}
-            onclick={() => filterSubcategory(entry.subcategory)}
-          >
-            <div class="truncate font-semibold">{entry.subcategory}</div>
-            <div class="truncate text-xs opacity-75">{entry.category}</div>
-          </CalEvent>
-        {/if}
+        {@const weekDayStart = new Date(
+          weekStartLocal.getFullYear(),
+          weekStartLocal.getMonth(),
+          weekStartLocal.getDate(),
+        )}
+        {@const daysDiff = Math.round(
+          ((entryDayStart.getTime() - weekDayStart.getTime()) * MILLISECOND) / DAY,
+        )}
+        <CalEvent
+          startHour={localStartHour}
+          dayIndex={daysDiff}
+          duration={entry.duration / HOUR}
+          color={getSubcategoryColor(entry.category, entry.subcategory)}
+          onclick={() => filterSubcategory(entry.subcategory)}
+        >
+          <div class="truncate font-semibold">{entry.subcategory}</div>
+          <div class="truncate text-xs opacity-75">{entry.category}</div>
+        </CalEvent>
       {/if}
-    {/each}
-  </div>
-{/if}
+    {/if}
+  {/each}
+</div>
