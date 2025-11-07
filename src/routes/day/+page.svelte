@@ -249,6 +249,7 @@
       filteredSubcategory = null
     } else {
       filteredSubcategory = subcategory
+      if (groupingMode) window.scrollTo({ top: 0 })
     }
     loadTimeEntries()
   }
