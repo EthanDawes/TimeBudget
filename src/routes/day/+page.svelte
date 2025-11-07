@@ -28,6 +28,7 @@
   let budgetConfig = $state(loadBudgetConfig())
   let filteredWeekday: number | null = $state(null)
   let filteredSubcategory: string | null = $state(null)
+  let groupingMode = $state(false)
 
   // Color palette matching budget-generator.js
   const palette = [
@@ -74,6 +75,102 @@
 
     return `#${newR.toString(16).padStart(2, "0")}${newG.toString(16).padStart(2, "0")}${newB.toString(16).padStart(2, "0")}`
   }
+
+  // Process entries for grouping mode
+  const processedEntries = $derived.by(() => {
+    if (!groupingMode) return timeEntries
+
+    // Group entries by day, then by category, then by subcategory
+    const groupedByDay = new Map()
+
+    timeEntries.forEach((entry) => {
+      if (!entry.duration) return
+
+      const entryDate = new Date(entry.timestampStart / MILLISECOND)
+      const dayKey =
+        filteredWeekday !== null
+          ? Math.floor(
+              (currentWeekStart + filteredWeekday * DAY - entry.timestampStart) / (7 * DAY),
+            )
+          : Math.round(
+              (new Date(
+                entryDate.getFullYear(),
+                entryDate.getMonth(),
+                entryDate.getDate(),
+              ).getTime() *
+                MILLISECOND -
+                currentWeekStart) /
+                DAY,
+            )
+
+      if (!groupedByDay.has(dayKey)) {
+        groupedByDay.set(dayKey, new Map())
+      }
+
+      const dayGroups = groupedByDay.get(dayKey)
+      const categoryKey = entry.category
+
+      if (!dayGroups.has(categoryKey)) {
+        dayGroups.set(categoryKey, new Map())
+      }
+
+      const categoryGroups = dayGroups.get(categoryKey)
+      const subcategoryKey = entry.subcategory
+
+      if (!categoryGroups.has(subcategoryKey)) {
+        categoryGroups.set(subcategoryKey, [])
+      }
+
+      categoryGroups.get(subcategoryKey).push(entry)
+    })
+
+    // Convert back to flat array with adjusted start times
+    const processedEntries = []
+
+    for (const [dayKey, dayGroups] of groupedByDay) {
+      let currentStartHour = 0 // Start stacking from midnight
+
+      // Sort categories by name for consistent ordering
+      const sortedCategories = Array.from(dayGroups.keys()).sort()
+
+      for (const categoryKey of sortedCategories) {
+        const categoryGroups = dayGroups.get(categoryKey)
+
+        // Sort subcategories by name for consistent ordering
+        const sortedSubcategories = Array.from(categoryGroups.keys()).sort()
+
+        for (const subcategoryKey of sortedSubcategories) {
+          const entries = categoryGroups.get(subcategoryKey)
+
+          // Sort entries by original timestamp to maintain order
+          entries.sort((a, b) => a.timestampStart - b.timestampStart)
+
+          for (const entry of entries) {
+            // Calculate the day start for this entry
+            const entryDate = new Date(entry.timestampStart / MILLISECOND)
+            const dayStartLocal = new Date(
+              entryDate.getFullYear(),
+              entryDate.getMonth(),
+              entryDate.getDate(),
+            )
+            const dayStartMinutes = dayStartLocal.getTime() * MILLISECOND
+
+            // Create new entry with adjusted start time
+            const adjustedEntry = {
+              ...entry,
+              originalTimestampStart: entry.timestampStart,
+              timestampStart: dayStartMinutes + currentStartHour * HOUR,
+            }
+
+            processedEntries.push(adjustedEntry)
+            currentStartHour += entry.duration / HOUR
+          }
+        }
+      }
+    }
+
+    return processedEntries
+  })
   const days = $derived.by(() => {
     if (filteredWeekday !== null) {
       // Show past 3 weeks for the selected day
@@ -197,9 +294,24 @@
 
 <!-- Navigation Header -->
 <div class="mb-4 flex items-center justify-between bg-white p-4 shadow-sm">
-  <button onclick={previousWeek} class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600">
-    ← Previous
-  </button>
+  <div class="flex items-center gap-2">
+    <button
+      onclick={previousWeek}
+      class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600"
+    >
+      ← Previous
+    </button>
+    <button
+      onclick={() => (groupingMode = !groupingMode)}
+      class="rounded px-3 py-1 text-white transition-colors"
+      class:bg-green-500={groupingMode}
+      class:hover:bg-green-600={groupingMode}
+      class:bg-gray-500={!groupingMode}
+      class:hover:bg-gray-600={!groupingMode}
+    >
+      {groupingMode ? "Grouped" : "Group"}
+    </button>
+  </div>
   <div class="flex flex-col items-center">
     <h1 class="text-xl font-semibold">{currentMonth}</h1>
     {#if filteredSubcategory}
@@ -209,6 +321,9 @@
           >clear</button
         >
       </div>
+    {/if}
+    {#if groupingMode}
+      <div class="text-xs text-green-600">Events grouped by category & subcategory</div>
     {/if}
   </div>
   <button onclick={nextWeek} class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600">
@@ -247,7 +362,7 @@
   </table>
 
   <!-- Cal events -->
-  {#each timeEntries as entry (entry.id)}
+  {#each processedEntries as entry (entry.id)}
     {#if entry.duration}
       {@const entryDate = new Date(entry.timestampStart / MILLISECOND)}
       {@const dayStartLocal = new Date(
