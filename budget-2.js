@@ -6,21 +6,27 @@ const DAY = 24 * HOUR
 const DAILY = 7
 
 // Days of the week
-const M = 0
-const T = 1
-const W = 2
-const R = 3
-const F = 4 // Muslim day of worship Jum'ah
-const S = 5 // Sabbath
-const J = 6 // Jesusday
-const weekdays = [M, T, W, R, F]
-const everyday = [...weekdays, S, J]
+const M = 1
+const T = 2
+const W = 4
+const R = 8
+const F = 16 // Muslim day of worship Jum'ah
+const S = 32 // Sabbath
+const J = 64 // Jesusday
+const weekdays = M + T + W + R + F
+const everyday = weekdays + S + J
+
+// Unspent behavior
+// If unspent that day, will persist and need to be budgeted some other day. Default
+const ROLLOVER = -1
+// If unspent that day, will be discarded and added to the "unallocated" pool
+const FREE = -2
 
 // This is a validator function with no current UI features. It provides insight into whether your schedule for every day is possible and how difficult it will be.
 // For example, if you have a 4 hour confrence one day, and 20 hours of homework, it should
 // Resolving how to spread time is a task best left to the user (eg. moving 2 hr of homework to the next day)
 // Maybe make M..J objects with a .add and .sub method to move time around?
-function Spread(time, ...dates) {
+/*function Spread(time, ...dates) {
   const dailyTime = time / dates.length
   for (const date of dates) {
     dailyPlannedTime[date] -= dailyTime
@@ -43,38 +49,95 @@ function Category(name, time, subcategories) {
 }
 
 const PLUS = (hours) => ({ type: "plus", num: hours })
-const TOTAL = (hours) => ({ type: "total", num: hours })
+const TOTAL = (hours) => ({ type: "total", num: hours })*/
 
-const creditHours = 11
+const creditHours = 15
 const workPerCredHour = 3 * HOUR
-const lectureDuration = Spread(4 * HOUR, T, R, F) + Spread(1.25 * HOUR * 6, T, R) // 4 PSOs (hour-long) + 6 power hours.
+const lectureDuration = Spread(2 * HOUR, T, R) + Spread(1.5 * HOUR * 6, T, R) // 2 PSOs (hour-long) + 6 power hours. I think attending STAT 511 & linalg less likely
 const courseworkTotal = creditHours * workPerCredHour
 
 const mealsPerDay = 2
 const mealDuration = 30 * MINUTE
 
+// Dates available
+// Daily minimums
+// Roll over or free
+
+const budget2 = [
+  Category("Social", TOTAL(15), [
+    Subcat("Friends", TOTAL(5), [
+      Event("Hack Night", 3 * HOUR, F, FREE), //
+    ]),
+    Subcat("New Connections", TOTAL(2)),
+  ]),
+  Category("Coursework", TOTAL(35), [
+    Subcat("Hw", TOTAL(20), [
+      // Calculated from actual week data
+      // TODO: should I make this heavier before R? Can experiment once UI exists
+      Event(null, 20 * HOUR, everyday),
+    ]),
+    Subcat("Hw Review", TOTAL(1)), // Doesn't make sense to split over weekdays (too short per day, do ~2/wk)
+    Subcat("Lectures", PLUS(0), [
+      Event("Real Analysis", 2.5 * HOUR, T + R),
+      Event("CS 381", 2.5 * HOUR, T + R),
+      Event("CS 381", 50 * MINUTE, W),
+      Event("CS 422", 2.5 * HOUR, T + R),
+      Event("Learning & Motivation", 50 * MINUTE * 2, M + W),
+    ]),
+  ]),
+  Category("Jobs", PLUS(0), [
+    Subcat("RA", PLUS(0), [
+      //Event("Hall Club", )
+      // TODO: This is very tedious and is prone to change. It makes more sense to just pull from my gcal and assign categories to events.
+    ]),
+  ]),
+]
+
 const budget = {
   ...Category("Social", TOTAL(15 * HOUR), {
-    Friends: 2 * HOUR,
-    "New connections": 2 * HOUR,
-    "Hack night": Spread(3 * HOUR, F),
+    Friends: {
+      time: 2 * HOUR, // Always assume plus
+      events: [
+        {
+          name: "Hack night",
+          time: 3 * HOUR,
+          days: [F],
+          unspent: FREE, // ROLLOVER, FREE
+        },
+      ],
+    },
+    "New connections": {
+      time: 2 * HOUR,
+      events: [],
+    },
   }),
   ...Category("Coursework", TOTAL(35 * HOUR), {
-    Hw: Spread(20 * HOUR, ...everyday), // Calculated from actual week data
-    "Hw review": Spread(1 * HOUR, ...weekdays),
-    Lectures: lectureDuration,
+    Hw: {
+      time: 0,
+      events: [
+        {
+          //name: "work",
+          time: 20 * HOUR, // Calculated from actual week data
+          days: everyday,
+          unspent: ROLLOVER,
+        },
+      ],
+    },
+    //Spread(20 * HOUR, ...everyday),
+    "Hw review": {
+      time: 1 * HOUR,
+      events: [],
+    },
+    Lectures: {
+      time: lectureDuration,
+      events: [],
+    },
     "Office hours / group study": Spread(1 * HOUR, ...weekdays),
   }),
   ...Category("Jobs", PLUS(0), {
-    //ECELabs: Spread(1 * HOUR, T) + Spread(2 * HOUR, W) + 7 * HOUR, // Team lead, SW & general meeting
+    ECELabs: Spread(1 * HOUR, T) + Spread(2 * HOUR, W) + 7 * HOUR, // Team lead, SW & general meeting
     Internships: Spread(1 * HOUR * DAILY, M, R, S),
-    // 4 hr total
-    RHA:
-      Spread(1 * HOUR, M) + // Senate
-      Spread(45 * MINUTE, W) + // 1:1
-      Spread(1 * HOUR, R) + // Exec
-      1.25 * HOUR + // sometimes PRT
-      Spread(1 * HOUR), // Leadership cafe
+    RHA: Spread(1 * HOUR, M) + Spread(1 * HOUR, W) + Spread(45 * MINUTE, W) + 1.25 * HOUR, // Senate, 1:1, Exec, resp. sometimes PRT. 4hr total
     RA: 6.5 * HOUR,
   }),
   /*...Category("RA", PLUS(0), {
@@ -103,80 +166,6 @@ const budget = {
     Projects: 5 * HOUR,
   }),
   ...Category("Relax", PLUS(0), {
-    Relax: 5 * HOUR, // Idk, I definately need time for this but don't know where to take it from
+    Relax: 0, // Idk, I definately need time for this but don't know where to take it from
   }),
 }
-
-console.log(budget)
-console.log(JSON.stringify(budget))
-
-// Validate budget
-const minutesPerWeek = 7 * DAY
-const budgetedTotal = Object.values(budget).reduce((acc, cat) => acc + cat.time, 0)
-console.log("you have", (minutesPerWeek - budgetedTotal) / HOUR, "unallocated hours")
-
-// AI below
-const palette = [
-  "#3366cc",
-  "#dc3912",
-  "#ff9900",
-  "#109618",
-  "#990099",
-  "#0099c6",
-  "#dd4477",
-  "#66aa00",
-  "#b82e2e",
-  "#316395",
-]
-
-function generatePieChartConfig(budgetConfig) {
-  const labels = []
-  const data = []
-  const backgroundColor = []
-
-  let paletteIndex = 0
-
-  Object.entries(budgetConfig).forEach(([category, { time, subcategories }]) => {
-    const categoryColor = palette[paletteIndex % palette.length]
-    const subTotal = Object.values(subcategories).reduce((a, b) => a + b, 0)
-
-    Object.entries(subcategories).forEach(([sub, val]) => {
-      labels.push(sub)
-      data.push(val / HOUR)
-      backgroundColor.push(categoryColor)
-    })
-
-    if (subTotal < time) {
-      labels.push(`${category} other`)
-      data.push((time - subTotal) / HOUR)
-      backgroundColor.push(categoryColor)
-    }
-
-    paletteIndex++
-  })
-
-  return {
-    type: "pie",
-    data: { labels, datasets: [{ data, backgroundColor }] },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: "right" },
-      },
-    },
-  }
-}
-
-const chartConfig = generatePieChartConfig(budget)
-console.log(chartConfig)
-
-// Time per day of week (copied from `time.ts`, not very DRY)
-function fmtDuration(minutes) {
-  minutes = Math.round(minutes) // Round now instead of later to avoid weird "4h 60m"
-  const sign = minutes < 0 ? "-" : ""
-  const abs = Math.abs(minutes)
-  const hours = Math.floor(abs / HOUR)
-  const remaining = abs % HOUR
-  return [sign, hours ? `${hours}h ` : "", remaining || !hours ? `${remaining}m` : ""].join("")
-}
-console.log(dailyPlannedTime.map(fmtDuration))
