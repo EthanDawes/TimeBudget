@@ -22,150 +22,114 @@ const ROLLOVER = -1
 // If unspent that day, will be discarded and added to the "unallocated" pool
 const FREE = -2
 
-// This is a validator function with no current UI features. It provides insight into whether your schedule for every day is possible and how difficult it will be.
-// For example, if you have a 4 hour confrence one day, and 20 hours of homework, it should
-// Resolving how to spread time is a task best left to the user (eg. moving 2 hr of homework to the next day)
-// Maybe make M..J objects with a .add and .sub method to move time around?
-/*function Spread(time, ...dates) {
-  const dailyTime = time / dates.length
-  for (const date of dates) {
-    dailyPlannedTime[date] -= dailyTime
-  }
-  return time
-}
-// Used by `Spread` Currently maps date (index) to free time that day. TODO: make this a pie chart per day?
-const dailyPlannedTime = Array(7).fill(DAY)
+const bitmaskToArray = (mask) =>
+  Array.from({ length: 7 }, (_, i) => i).filter((i) => mask & (1 << i))
 
+// Category `time` can't be `Spread`, only subcat
 function Category(name, time, subcategories) {
-  const subcatTotal = Object.values(subcategories).reduce((acc, val) => acc + val)
-  if (time.type === "total" && subcatTotal > time.num)
-    throw `Total time cannot be less than combined subcategory time (${subcatTotal} exceeds ${time.num})`
+  // subcatTotal can't be computed ahead of time because then you lose info about whether adding an event should increase the total time or nonetheless
+  // There'll probably need to be a 3rd db `computedBudget`. This'll also allow tracking budgets over weeks
+  for (const subcat of subcategories) {
+    if (subcat.spread) {
+      _Spread(name, subcat.name, ...subcat.spread)
+    }
+    delete subcat.spread
+  }
+
   return {
-    [name]: {
-      time: time.type === "total" ? time.num : subcatTotal + time.num,
-      subcategories,
-    },
+    name,
+    time: time.num,
+    total: time.type === "total",
+    subcategories,
   }
 }
 
-const PLUS = (hours) => ({ type: "plus", num: hours })
-const TOTAL = (hours) => ({ type: "total", num: hours })*/
+// TODO: what if I want to allocate a specific amount of time to 1 day? Find out through testing. Maybe values > 1 assumed to be raw, then take percentages from remaining?
+// We can worry about implementing auto-free later, since I already have the ability to realloc w/i the app
+function _Spread(cat, subcat, hours, rollover, distributions) {
+  for (const spread of distributions) {
+    const [daysBitmask, weight] = spread
+    const days = bitmaskToArray(daysBitmask)
+    for (const dayIdx of days) {
+      schedule.push({
+        day: dayIdx, // index to week
+        duration: (hours * weight) / days.length,
+        //calId: 0, // optional
+        leftovers: rollover,
+        cat,
+        subcat,
+      })
+    }
+  }
+}
 
-const creditHours = 15
-const workPerCredHour = 3 * HOUR
-const lectureDuration = Spread(2 * HOUR, T, R) + Spread(1.5 * HOUR * 6, T, R) // 2 PSOs (hour-long) + 6 power hours. I think attending STAT 511 & linalg less likely
+// When assigning a cal event, the difference is that PLUS will pull time from unalloc, TOTAL will not
+const Plus = (hours) => ({ type: "plus", num: hours * HOUR })
+const Total = (hours) => ({ type: "total", num: hours * HOUR })
+const Spread = (hours, leftovers, ...distributions) => ({
+  type: "total",
+  num: hours * HOUR,
+  spread: [hours * HOUR, leftovers, distributions],
+})
+const Subcat = (name, time) => ({
+  name,
+  time: time.num,
+  total: time.type === "total",
+  spread: time.spread,
+})
+
+// Useful estimates
+const creditHours = 11
+const workPerCredHour = 3
 const courseworkTotal = creditHours * workPerCredHour
+console.log(
+  `At ${creditHours} credit hours and ${workPerCredHour} hours/credit hour, you're expected to spend ${courseworkTotal}hr on school`,
+)
 
-const mealsPerDay = 2
-const mealDuration = 30 * MINUTE
+// `Subcat` need not contain every event, since inputting is tedious and is prone to change. It makes more sense to just pull from my gcal and assign categories to events.
+// Things that I don't schedule on calendar but do nonetheless (see 'Wellness') use `Spread` to pre-budget time (convienence)
 
-// Dates available
-// Daily minimums
-// Roll over or free
+const schedule = []
 
-const budget2 = [
-  Category("Social", TOTAL(15), [
-    Subcat("Friends", TOTAL(5), [
-      Event("Hack Night", 3 * HOUR, F, FREE), //
-    ]),
-    Subcat("New Connections", TOTAL(2)),
+const budget = [
+  Category("Social", Total(15), [Subcat("Friends", Total(5)), Subcat("New Connections", Total(2))]),
+  Category("Coursework", Total(courseworkTotal), [
+    // Calculated from actual week data
+    // 80% time spent before Thr, 20% time after
+    Subcat("Hw", Spread(20, ROLLOVER, [M + T + W + R, 0.8], [F + S + J, 0.2])),
+    Subcat("Hw Review", Total(1)),
+    // It seems odd to have PLUS(0), but this'll be increased once cal events are assigned to the category in the UI
+    Subcat("Lectures", Plus(0)),
   ]),
-  Category("Coursework", TOTAL(35), [
-    Subcat("Hw", TOTAL(20), [
-      // Calculated from actual week data
-      // TODO: should I make this heavier before R? Can experiment once UI exists
-      Event(null, 20 * HOUR, everyday),
-    ]),
-    Subcat("Hw Review", TOTAL(1)), // Doesn't make sense to split over weekdays (too short per day, do ~2/wk)
-    Subcat("Lectures", PLUS(0), [
-      Event("Real Analysis", 2.5 * HOUR, T + R),
-      Event("CS 381", 2.5 * HOUR, T + R),
-      Event("CS 381", 50 * MINUTE, W),
-      Event("CS 422", 2.5 * HOUR, T + R),
-      Event("Learning & Motivation", 50 * MINUTE * 2, M + W),
-    ]),
+  Category("Jobs", Plus(0), [
+    Subcat("Internships", Total(1 * HOUR * DAILY)),
+    Subcat("RHA", Plus(0)),
+    Subcat(
+      "RA",
+      Plus(1 /* admin */ + 1 /* residents */ + 1 /* event planning */ /* All else on cal */),
+    ),
   ]),
-  Category("Jobs", PLUS(0), [
-    Subcat("RA", PLUS(0), [
-      //Event("Hall Club", )
-      // TODO: This is very tedious and is prone to change. It makes more sense to just pull from my gcal and assign categories to events.
-    ]),
+  Category("Wellness", Plus(0), [
+    Subcat("Eat", Spread(6.5, FREE, [everyday, 1])),
+    Subcat("Sleep", Spread(8 * DAILY, ROLLOVER, [everyday, 1])),
+    Subcat("Excercise", Spread(0.5 * DAILY, FREE, [everyday, 1])),
+    Subcat("Mindfullness", Total(10 * MINUTE * DAILY)),
+    // Morning/evening routine accounted for in cal
+    // `shower` is the only case where I might want the ability to create events that aren't in my cal, but later problem
+    Subcat("Chores", Plus(20 * MINUTE * (DAILY / 2) /* Shower */ + 2 * HOUR /* misc */)),
   ]),
+  Category("Curiosity", Total(15), [
+    Subcat("Learning", Total(5)),
+    Subcat("Programming", Total(5)),
+    Subcat("Projects", Total(5)),
+  ]),
+  Category("Relax", Total(5), [Subcat("Relax", Total(5))]),
 ]
 
-const budget = {
-  ...Category("Social", TOTAL(15 * HOUR), {
-    Friends: {
-      time: 2 * HOUR, // Always assume plus
-      events: [
-        {
-          name: "Hack night",
-          time: 3 * HOUR,
-          days: [F],
-          unspent: FREE, // ROLLOVER, FREE
-        },
-      ],
-    },
-    "New connections": {
-      time: 2 * HOUR,
-      events: [],
-    },
-  }),
-  ...Category("Coursework", TOTAL(35 * HOUR), {
-    Hw: {
-      time: 0,
-      events: [
-        {
-          //name: "work",
-          time: 20 * HOUR, // Calculated from actual week data
-          days: everyday,
-          unspent: ROLLOVER,
-        },
-      ],
-    },
-    //Spread(20 * HOUR, ...everyday),
-    "Hw review": {
-      time: 1 * HOUR,
-      events: [],
-    },
-    Lectures: {
-      time: lectureDuration,
-      events: [],
-    },
-    "Office hours / group study": Spread(1 * HOUR, ...weekdays),
-  }),
-  ...Category("Jobs", PLUS(0), {
-    ECELabs: Spread(1 * HOUR, T) + Spread(2 * HOUR, W) + 7 * HOUR, // Team lead, SW & general meeting
-    Internships: Spread(1 * HOUR * DAILY, M, R, S),
-    RHA: Spread(1 * HOUR, M) + Spread(1 * HOUR, W) + Spread(45 * MINUTE, W) + 1.25 * HOUR, // Senate, 1:1, Exec, resp. sometimes PRT. 4hr total
-    RA: 6.5 * HOUR,
-  }),
-  /*...Category("RA", PLUS(0), {
-    // 1 hr rounds, 1 hr newsletter, 1 hr shopping, 2 hr event execution
-    "Hall Club": Spread(1 * HOUR, M),
-    Staff: Spread(1 * HOUR, M),
-    "1:1": Spread(30 * MINUTE, T), // Can be either M or T
-    Admin: 1 * HOUR, // Newsletter, program proposal/reflection
-    Residents: 1 * HOUR, // Interact, answer questions
-    Event: 2 * HOUR, // Include planning
-    Duty: Spread(1 * HOUR, J),
-  }),*/
-  ...Category("Wellness", PLUS(0), {
-    Eat: Spread(6.5 * HOUR, ...everyday), // My fancy formula turned out to be too much time
-    // TODO: this would be a good use case for more intelligent per-day budgeting. If I don't spend 30 min eating, I can assume I saved that time and add to unalloc time
-    Sleep: Spread(8 * HOUR * DAILY, ...everyday),
-    Exercise: 30 * MINUTE * DAILY,
-    Mindfullness: 10 * MINUTE * DAILY,
-    // Chores includes Routine, Clean, Shower, and Schedule (future planning)
-    // Morning, evening, and shower. Plus time for cleaning/organization
-    Chores: Spread(10 * MINUTE * DAILY + 20 * MINUTE * DAILY * 3, ...everyday),
-  }),
-  ...Category("Curiosity", TOTAL(15 * HOUR), {
-    Learning: 5 * HOUR,
-    Programming: 5 * HOUR,
-    Projects: 5 * HOUR,
-  }),
-  ...Category("Relax", PLUS(0), {
-    Relax: 0, // Idk, I definately need time for this but don't know where to take it from
-  }),
+// Add order data
+for (const [idx, cat] of budget.entries()) {
+  cat.order = idx
 }
+
+console.log(budget)
+console.log(schedule)
