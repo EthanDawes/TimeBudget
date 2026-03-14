@@ -126,10 +126,5 @@ const budget = [
   Category("Relax", Total(5), [Subcat("Relax", Total(5))]),
 ]
 
-// Add order data
-for (const [idx, cat] of budget.entries()) {
-  cat.order = idx
-}
-
 console.log(budget)
 console.log(schedule)

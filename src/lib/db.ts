@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from "dexie"
+import dexieCloud, { type DexieCloudTable } from "dexie-cloud-addon"
 import { MILLISECOND, DAY } from "./time"
 
 export interface TimeEntry {
@@ -10,16 +11,59 @@ export interface TimeEntry {
   duration?: number
 }
 
-export const db = new Dexie("TimeBudgetDb") as Dexie & {
-  timeEntries: EntityTable<
+export interface Budget {
+  name: string
+  time: number
+  total: boolean // This is same as unrealized budget (don't just set true) so then I don't have to load/check the global config to know what to do when adding new event
+  subcategories: [{ name: string; time: number; total: boolean }]
+}
+
+// Since I'm going to load an entire week's budget into memory at once, it doesn't make sense to split entries by category
+// This also lets me store budgeting history (if reallocs made)
+interface WeekBudget {
+  id: string
+  weekId: number // When realized, this is some week identifier. Otherwise, it's -1
+  budget: Budget
+}
+
+enum Leftovers {
+  ROLLOVER = -1,
+  FREE = -2,
+}
+
+// When replacing schedules made by `budget-generator`, delete & replace all entries with `calId` blank
+// Schedule doesn't need history because it evolves towards the ultimate spent time at end of week
+interface Schedule {
+  id: string
+  name?: string // event name
+  day: number // index to week
+  duration: number // minutes
+  calId?: string
+  leftovers: Leftovers
+  cat: string
+  subcat: string
+  // TODO: date field so I can delete old events? what about repeating events?
+}
+
+export const db = new Dexie("TimeBudgetDb", { addons: [dexieCloud] }) as Dexie & {
+  timeEntries: DexieCloudTable<
     TimeEntry,
     "id" // primary key "id" (for the typings only)
   >
+  budget: DexieCloudTable<WeekBudget, "id">
+  schedule: DexieCloudTable<Schedule, "id">
 }
 
 // Schema declaration:
-db.version(1).stores({
-  timeEntries: "++id, category, [category+subcategory], timestampStart", // primary key "id" (for the runtime!)
+db.version(2).stores({
+  timeEntries: "@id, category, [category+subcategory], timestampStart", // primary key "id" (for the runtime!)
+  budget: "@id, weekId",
+  schedule: "@id, calId",
+})
+
+db.cloud.configure({
+  databaseUrl: "https://zwbp22kky.dexie.cloud",
+  // Auth should not be required, can use offline
 })
 
 export async function exportSpentTime() {
@@ -61,3 +105,6 @@ export async function exportSpentTime() {
     document.body.removeChild(link)
   }
 }
+
+// Export table: await db.<table>.toArray()
+// Import table (in 1 transaction): 1: whatever clearing logic 2: await table.bulkAdd(<rows>)
