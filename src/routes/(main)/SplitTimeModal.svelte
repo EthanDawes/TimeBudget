@@ -8,8 +8,9 @@
     nowMinutes,
     parseTimeToMinutes,
   } from "$lib/time"
-  import { type BudgetConfig, loadWeeklyBudgetConfig, type SplitEntry } from "$lib/budgetManager"
-  import type { TimeEntry } from "$lib/db"
+  import { onMount } from "svelte"
+  import { loadWeeklyBudgetConfig, type SplitEntry } from "$lib/budgetManager"
+  import type { TimeEntry, Budget } from "$lib/db"
 
   let {
     currentTasks = [],
@@ -21,7 +22,11 @@
     onsubmit: (splitEntries: SplitEntry[]) => void
   } = $props()
 
-  let budget: BudgetConfig = loadWeeklyBudgetConfig()
+  let budget = $state<Budget[]>([])
+
+  onMount(async () => {
+    budget = await loadWeeklyBudgetConfig()
+  })
   let splitEntries: SplitEntry[] = $state([])
   let modal: HTMLDialogElement
 
@@ -131,12 +136,11 @@
   function getCategoryOptions() {
     const options = []
 
-    for (const [categoryName, category] of Object.entries(budget)) {
-      // Only add subcategory options (no category-only options)
-      for (const subcategoryName of Object.keys(category.subcategories)) {
+    for (const category of budget) {
+      for (const sub of category.subcategories) {
         options.push({
-          value: `${categoryName}|${subcategoryName}`,
-          label: `${categoryName} → ${subcategoryName}`,
+          value: `${category.name}|${sub.name}`,
+          label: `${category.name} → ${sub.name}`,
         })
       }
     }

@@ -1,74 +1,64 @@
-import { db, type TimeEntry } from "./db"
-import { DAY, getWeekStart, nowMinutes, fmtDuration, MILLISECOND } from "./time"
+import { db, type Budget, type TimeEntry } from "./db"
+import { DAY, getWeekId, getWeekStart, nowMinutes, fmtDuration, MILLISECOND } from "./time"
 import _ from "lodash"
-
-const STORAGE_KEYS = {
-  BUDGET_CONFIG: "timeBudget_config",
-  WEEKLY_DATA: "timeBudget_weeklyData",
-  WEEKLY_BUDGET: "timeBudget_weeklyBudget",
-}
 
 // { Category and CategorySubcategory (concatenated): spent time }
 export type AccumulatedTime = Record<string, number>
 
-export interface BudgetConfig {
-  [category: string]: {
-    // Total budgeted time for this category. Can be larger than the sum of subcategories to allow for wiggle room
-    time: number
-    subcategories: {
-      [subcategory: string]: number
-    }
+const GLOBAL_CONFIG_WEEK_ID = -1
+
+const DEFAULT_BUDGET: Budget[] = [
+  {
+    name: "category",
+    time: 600,
+    total: false,
+    subcategories: [
+      { name: "a", time: 100, total: false },
+      { name: "b", time: 400, total: false },
+    ],
+  },
+]
+
+// Load global budget configuration from IndexedDB
+export async function loadBudgetConfig(): Promise<Budget[]> {
+  const record = await db.budget.where("weekId").equals(GLOBAL_CONFIG_WEEK_ID).first()
+  if (record) return record.budget
+  return structuredClone(DEFAULT_BUDGET)
+}
+
+// Save global budget configuration to IndexedDB
+export async function saveBudgetConfig(budget: Budget[]): Promise<void> {
+  const existing = await db.budget.where("weekId").equals(GLOBAL_CONFIG_WEEK_ID).first()
+  if (existing) {
+    await db.budget.update(existing.id, { budget })
+  } else {
+    await db.budget.add({ weekId: GLOBAL_CONFIG_WEEK_ID, budget })
   }
 }
 
-// Load global budget configuration from localStorage
-export function loadBudgetConfig(): BudgetConfig {
-  const stored = localStorage.getItem(STORAGE_KEYS.BUDGET_CONFIG)
-  if (stored) {
-    return JSON.parse(stored)
-  }
+// Load weekly budget (with reallocations applied) from IndexedDB.
+// If no entry exists for the current week, creates one from the global config.
+export async function loadWeeklyBudgetConfig(): Promise<Budget[]> {
+  const weekId = getWeekId()
+  const record = await db.budget.where("weekId").equals(weekId).first()
+  if (record) return record.budget
 
-  // Return default config
-  return {
-    category: {
-      time: 600,
-      subcategories: {
-        a: 100,
-        b: 400,
-      },
-    },
-  }
-}
-
-// Load weekly budget (with reallocations applied) from localStorage
-export function loadWeeklyBudgetConfig(): BudgetConfig {
-  const stored = localStorage.getItem(STORAGE_KEYS.WEEKLY_BUDGET)
-  if (stored) {
-    const weeklyBudget = JSON.parse(stored)
-    // Check if it's from the current week by comparing a timestamp
-    const currentWeekStart = getWeekStart()
-    if (weeklyBudget._weekStart === currentWeekStart) {
-      delete weeklyBudget._weekStart
-      return weeklyBudget
-    }
-  }
-
-  // If no weekly budget or it's from a previous week, use global budget
-  return loadBudgetConfig()
+  // No weekly budget yet; seed from global config
+  const globalBudget = await loadBudgetConfig()
+  const newBudget = structuredClone(globalBudget)
+  await db.budget.add({ weekId, budget: newBudget })
+  return newBudget
 }
 
 // Save weekly budget configuration with reallocations
-export function saveWeeklyBudgetConfig(config: BudgetConfig): void {
-  const configWithWeek = {
-    ...config,
-    _weekStart: getWeekStart(),
+export async function saveWeeklyBudgetConfig(budget: Budget[]): Promise<void> {
+  const weekId = getWeekId()
+  const existing = await db.budget.where("weekId").equals(weekId).first()
+  if (existing) {
+    await db.budget.update(existing.id, { budget })
+  } else {
+    await db.budget.add({ weekId, budget })
   }
-  localStorage.setItem(STORAGE_KEYS.WEEKLY_BUDGET, JSON.stringify(configWithWeek))
-}
-
-// Save global budget configuration to localStorage
-export function saveBudgetConfig(config: BudgetConfig): void {
-  localStorage.setItem(STORAGE_KEYS.BUDGET_CONFIG, JSON.stringify(config))
 }
 
 export async function loadWeeklyData() {
@@ -99,40 +89,39 @@ export function accumulateTime(entries: TimeEntry[]): AccumulatedTime {
   return { ...byCategory, ...byCatSub }
 }
 
-export function getUnallocatedTime(budget: BudgetConfig) {
-  return 7 * DAY - Object.values(budget).reduce((acc, cat) => acc + cat.time, 0)
+export function getUnallocatedTime(budget: Budget[]) {
+  return 7 * DAY - budget.reduce((acc, cat) => acc + cat.time, 0)
 }
 
-export function calculateOverage(budget: BudgetConfig, accumulatedTime: AccumulatedTime) {
+export function calculateOverage(budget: Budget[], accumulatedTime: AccumulatedTime) {
   let overage = 0
   const categoryOverages = calculateCategoryOverage(budget, accumulatedTime)
 
-  for (const [categoryName, category] of Object.entries(budget)) {
+  for (const category of budget) {
     // Calculate category buffer (total category time minus sum of subcategories)
     const categoryBuffer =
-      category.time - Object.values(category.subcategories).reduce((sum, budget) => sum + budget, 0)
+      category.time - category.subcategories.reduce((sum, s) => sum + s.time, 0)
 
     // If subcategory overages exceed the category buffer, the excess comes from unallocated time
-    const categoryOverage = categoryOverages[categoryName] ?? 0
+    const categoryOverage = categoryOverages[category.name] ?? 0
     overage += Math.max(0, categoryOverage - categoryBuffer)
   }
   return overage
 }
 
-export function calculateCategoryOverage(budget: BudgetConfig, accumulatedTime: AccumulatedTime) {
+export function calculateCategoryOverage(budget: Budget[], accumulatedTime: AccumulatedTime) {
   const categoryOverages: Record<string, number> = {}
 
-  for (const [categoryName, category] of Object.entries(budget)) {
+  for (const category of budget) {
     let totalOverage = 0
 
-    // Sum up overages from individual subcategories
-    for (const [subcategoryName, subcategoryBudget] of Object.entries(category.subcategories)) {
-      const subcategorySpent = accumulatedTime[categoryName + subcategoryName] ?? 0
-      const subcategoryOverage = Math.max(0, subcategorySpent - subcategoryBudget)
+    for (const sub of category.subcategories) {
+      const subcategorySpent = accumulatedTime[category.name + sub.name] ?? 0
+      const subcategoryOverage = Math.max(0, subcategorySpent - sub.time)
       totalOverage += subcategoryOverage
     }
 
-    categoryOverages[categoryName] = totalOverage
+    categoryOverages[category.name] = totalOverage
   }
 
   return categoryOverages
@@ -208,38 +197,43 @@ export async function switchTaskConcurrent(category: string, subcategory: string
 
 // Reallocate time between categories/subcategories
 export function reallocateTime(
-  budget: BudgetConfig,
-  fromCategory: string | null, // Null if moving from unallocated tmie
+  budget: Budget[],
+  fromCategory: string | null, // Null if moving from unallocated time
   fromSubcategory: string | null,
   toCategory: string | null, // Null if moving to unallocated time
   toSubcategory: string | null,
   amount: number,
-): BudgetConfig {
-  const newBudget = JSON.parse(JSON.stringify(budget)) // Deep clone since structuredClone doesn't work with svelte objects >:(
+): Budget[] {
+  const newBudget: Budget[] = JSON.parse(JSON.stringify(budget)) // Deep clone
+
+  const findCat = (name: string) => newBudget.find((c) => c.name === name)!
+  const findSub = (cat: Budget, name: string) => cat.subcategories.find((s) => s.name === name)!
 
   // Remove time from source
   if (fromCategory) {
+    const fromCat = findCat(fromCategory)
     if (fromSubcategory) {
-      newBudget[fromCategory].subcategories[fromSubcategory] -= amount
+      findSub(fromCat, fromSubcategory).time -= amount
       // If moving between different categories, also adjust category-level time
       if (fromCategory !== toCategory) {
-        newBudget[fromCategory].time -= amount
+        fromCat.time -= amount
       }
     } else {
-      newBudget[fromCategory].time -= amount
+      fromCat.time -= amount
     }
   }
 
   // Add time to destination
   if (toCategory) {
+    const toCat = findCat(toCategory)
     if (toSubcategory) {
-      newBudget[toCategory].subcategories[toSubcategory] += amount
+      findSub(toCat, toSubcategory).time += amount
       // If moving between different categories, also adjust category-level time
       if (fromCategory !== toCategory) {
-        newBudget[toCategory].time += amount
+        toCat.time += amount
       }
     } else if (fromCategory !== toCategory) {
-      newBudget[toCategory].time += amount
+      toCat.time += amount
     }
   }
   // If toCategory is null, we're moving to unallocated time (no action needed)
@@ -249,7 +243,7 @@ export function reallocateTime(
 
 // Get available time for reallocation from a category/subcategory or unallocated time
 export function getAvailableTime(
-  budget: BudgetConfig,
+  budget: Budget[],
   accumulatedTime: AccumulatedTime,
   category: string | null,
   subcategory: string | null,
@@ -260,23 +254,17 @@ export function getAvailableTime(
     const overage = calculateOverage(budget, accumulatedTime)
     return Math.max(0, unallocatedTime - overage)
   }
+
+  const cat = budget.find((c) => c.name === category)!
   const key = subcategory ? category + subcategory : category
   const spent = accumulatedTime[key] ?? 0
 
   if (subcategory) {
-    // For subcategories, available time is limited by both the subcategory budget
-    // and the remaining time at the category level
-    const subcategoryAllocated = budget[category].subcategories[subcategory]
-    const subcategoryAvailable = Math.max(0, subcategoryAllocated - spent)
-
-    // Available time is the minimum of subcategory available and category available
-    return subcategoryAvailable
+    const sub = cat.subcategories.find((s) => s.name === subcategory)!
+    return Math.max(0, sub.time - spent)
   } else {
-    const category_obj = budget[category]
-    const allocated_time =
-      category_obj.time -
-      Object.values(category_obj.subcategories).reduce((sum, budget) => sum + budget, 0)
-    return allocated_time - (calculateCategoryOverage(budget, accumulatedTime)[category] ?? 0)
+    const allocatedTime = cat.time - cat.subcategories.reduce((sum, s) => sum + s.time, 0)
+    return allocatedTime - (calculateCategoryOverage(budget, accumulatedTime)[category] ?? 0)
   }
 }
 
@@ -301,7 +289,7 @@ export async function cleanupLongRunningTasks(): Promise<void> {
 
 // Validate if a reallocation is possible
 export function validateReallocation(
-  budget: BudgetConfig,
+  budget: Budget[],
   accumulatedTime: AccumulatedTime,
   fromCategory: string | null,
   fromSubcategory: string | null,

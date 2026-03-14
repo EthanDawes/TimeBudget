@@ -16,6 +16,8 @@
     DAY,
   } from "$lib/time"
   import { loadBudgetConfig } from "$lib/budgetManager"
+  import type { Budget } from "$lib/db"
+  import { onMount } from "svelte"
   import { floorTo } from "$lib"
 
   const startTime = 0
@@ -25,7 +27,11 @@
 
   let currentWeekStart = $state(getWeekStart())
   let timeEntries: TimeEntry[] = $state([])
-  let budgetConfig = $state(loadBudgetConfig())
+  let budgetConfig = $state<Budget[]>([])
+
+  onMount(async () => {
+    budgetConfig = await loadBudgetConfig()
+  })
   let filteredWeekday: number | null = $state(null)
   let filteredSubcategory: string | null = $state(null)
   let groupingMode = $state(false)
@@ -46,15 +52,15 @@
 
   // Get category colors
   const getCategoryColor = (category: string) => {
-    const categories = Object.keys(budgetConfig)
-    const index = categories.indexOf(category)
+    const index = budgetConfig.findIndex((c) => c.name === category)
     return palette[index % palette.length] || "#999999"
   }
 
   // Generate shades for subcategories
   const getSubcategoryColor = (category: string, subcategory: string) => {
     const baseColor = getCategoryColor(category)
-    const subcategories = Object.keys(budgetConfig[category]?.subcategories || {})
+    const cat = budgetConfig.find((c) => c.name === category)
+    const subcategories = cat?.subcategories.map((s) => s.name) || []
     const index = subcategories.indexOf(subcategory)
     const totalSubs = subcategories.length
 

@@ -1,12 +1,18 @@
 <script lang="ts">
+  import { onMount } from "svelte"
   import { goto } from "$app/navigation"
   import { loadBudgetConfig, saveBudgetConfig } from "$lib/budgetManager"
   import { resolve } from "$app/paths"
 
-  let config = $state(JSON.stringify(loadBudgetConfig(), null, 2))
+  let config = $state("")
 
-  function saveClick() {
-    saveBudgetConfig(JSON.parse(config))
+  onMount(async () => {
+    const budgetConfig = await loadBudgetConfig()
+    config = JSON.stringify(budgetConfig, null, 2)
+  })
+
+  async function saveClick() {
+    await saveBudgetConfig(JSON.parse(config))
     goto(resolve("/"))
   }
 </script>

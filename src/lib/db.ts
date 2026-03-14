@@ -15,25 +15,25 @@ export interface Budget {
   name: string
   time: number
   total: boolean // This is same as unrealized budget (don't just set true) so then I don't have to load/check the global config to know what to do when adding new event
-  subcategories: [{ name: string; time: number; total: boolean }]
+  subcategories: { name: string; time: number; total: boolean }[]
 }
 
 // Since I'm going to load an entire week's budget into memory at once, it doesn't make sense to split entries by category
 // This also lets me store budgeting history (if reallocs made)
-interface WeekBudget {
+export interface WeekBudget {
   id: string
   weekId: number // When realized, this is some week identifier. Otherwise, it's -1
-  budget: Budget
+  budget: Budget[]
 }
 
-enum Leftovers {
+export enum Leftovers {
   ROLLOVER = -1,
   FREE = -2,
 }
 
 // When replacing schedules made by `budget-generator`, delete & replace all entries with `calId` blank
 // Schedule doesn't need history because it evolves towards the ultimate spent time at end of week
-interface Schedule {
+export interface Schedule {
   id: string
   name?: string // event name
   day: number // index to week

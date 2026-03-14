@@ -15,10 +15,9 @@
     cleanupLongRunningTasks,
     splitTime,
     type AccumulatedTime,
-    type BudgetConfig,
     type SplitEntry,
   } from "$lib/budgetManager"
-  import { exportSpentTime } from "$lib/db"
+  import { exportSpentTime, type Budget } from "$lib/db"
   import LabeledProgress from "./LabeledProgress.svelte"
   import SplitTimeModal from "./SplitTimeModal.svelte"
   import { resolve } from "$app/paths"
@@ -26,7 +25,7 @@
   import type { TimeEntry } from "$lib/db"
   import { ceilTo } from "$lib"
 
-  let budget = $state<BudgetConfig>(loadWeeklyBudgetConfig())
+  let budget = $state<Budget[]>([])
   let accumulatedTime = $state({} as AccumulatedTime)
   let categoryOverages = $state({} as Record<string, number>)
   let unallocatedTime = $state(0)
@@ -45,6 +44,10 @@
   async function setState() {
     // Clean up any tasks that have been running for more than 24 hours
     await cleanupLongRunningTasks()
+
+    if (budget.length === 0) {
+      budget = await loadWeeklyBudgetConfig()
+    }
 
     loadWeeklyData().then((data) => {
       accumulatedTime = accumulateTime(data)
@@ -122,7 +125,8 @@
       }
 
       // delete subcategory from this week's budget
-      delete budget[sourceSelection!.category].subcategories[sourceSelection!.subcategory]
+      const cat = budget.find((c) => c.name === sourceSelection!.category)!
+      cat.subcategories = cat.subcategories.filter((s) => s.name !== sourceSelection!.subcategory)
 
       saveWeeklyBudgetConfig(budget)
       setState()
@@ -139,7 +143,7 @@
     }
     const subcatName = prompt("New subcategory name")
     if (!subcatName) return
-    budget[category].subcategories[subcatName] = 0
+    budget.find((c) => c.name === category)!.subcategories.push({ name: subcatName, time: 0, total: false })
   }
 
   function handleUnallocatedClick() {
@@ -347,7 +351,8 @@
 {/if}
 
 <div class="flex flex-col gap-5 {showReallocationMode ? 'mt-32' : ''}">
-  {#each Object.entries(showReallocationMode ? previewBudget : budget) as [categoryName, category]}
+  {#each (showReallocationMode ? previewBudget : budget) as category}
+    {@const categoryName = category.name}
     {@const categoryAvailable = getAvailableTime(budget, accumulatedTime, categoryName, null)}
     {@const isSourceCategory =
       sourceSelection?.category === categoryName && !sourceSelection.subcategory}
@@ -365,8 +370,7 @@
     >
       <LabeledProgress
         spent={categoryOverages[categoryName] ?? 0}
-        budget={category.time -
-          Object.values(category.subcategories).reduce((sum, budget) => sum + budget, 0)}
+        budget={category.time - category.subcategories.reduce((sum, s) => sum + s.time, 0)}
         style={showReallocationMode
           ? !sourceSelection && categoryAvailable <= 0
             ? "cursor-not-allowed opacity-50 grayscale"
@@ -387,7 +391,9 @@
         </h2>
       </LabeledProgress>
 
-      {#each Object.entries(category.subcategories) as [subcategoryName, subcategoryBudget]}
+      {#each category.subcategories as sub}
+        {@const subcategoryName = sub.name}
+        {@const subcategoryBudget = sub.time}
         {@const subcategoryAvailable = getAvailableTime(
           budget,
           accumulatedTime,

@@ -23,6 +23,17 @@ export function getWeekStart(): number {
   return monday.getTime() * MILLISECOND
 }
 
+/** Get the UTC Monday midnight epoch (ms) identifying the current week, for use as weekId */
+export function getWeekId(): number {
+  const now = new Date()
+  const day = now.getUTCDay() // 0=Sunday
+  const daysToMonday = day === 0 ? -6 : 1 - day
+  const monday = new Date(now)
+  monday.setUTCDate(now.getUTCDate() + daysToMonday)
+  monday.setUTCHours(0, 0, 0, 0)
+  return monday.getTime()
+}
+
 export const nowMinutes = () => Date.now() * MILLISECOND
 
 // Parse time string in format like "1h 30m", "45m", "2h"
