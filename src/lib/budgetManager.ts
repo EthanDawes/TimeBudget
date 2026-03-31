@@ -7,23 +7,11 @@ export type AccumulatedTime = Record<string, number>
 
 const GLOBAL_CONFIG_WEEK_ID = -1
 
-const DEFAULT_BUDGET: Budget[] = [
-  {
-    name: "category",
-    time: 600,
-    total: false,
-    subcategories: [
-      { name: "a", time: 100, total: false },
-      { name: "b", time: 400, total: false },
-    ],
-  },
-]
-
 // Load global budget configuration from IndexedDB
 export async function loadBudgetConfig(): Promise<Budget[]> {
   const record = await db.budget.where("weekId").equals(GLOBAL_CONFIG_WEEK_ID).first()
   if (record) return record.budget
-  return structuredClone(DEFAULT_BUDGET)
+  throw new Error("Tried loading budget before db initialized")
 }
 
 // Save global budget configuration to IndexedDB

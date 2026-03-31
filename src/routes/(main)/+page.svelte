@@ -139,11 +139,13 @@
   function addSubcat() {
     const category = currentTasks[0]?.category
     if (!category) {
-      alert("You must have a currently active task in the category you want to add");
+      alert("You must have a currently active task in the category you want to add")
     }
     const subcatName = prompt("New subcategory name")
     if (!subcatName) return
-    budget.find((c) => c.name === category)!.subcategories.push({ name: subcatName, time: 0, total: false })
+    budget
+      .find((c) => c.name === category)!
+      .subcategories.push({ name: subcatName, time: 0, total: false })
   }
 
   function handleUnallocatedClick() {
@@ -351,7 +353,7 @@
 {/if}
 
 <div class="flex flex-col gap-5 {showReallocationMode ? 'mt-32' : ''}">
-  {#each (showReallocationMode ? previewBudget : budget) as category}
+  {#each showReallocationMode ? previewBudget : budget as category}
     {@const categoryName = category.name}
     {@const categoryAvailable = getAvailableTime(budget, accumulatedTime, categoryName, null)}
     {@const isSourceCategory =

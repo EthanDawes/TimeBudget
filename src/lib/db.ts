@@ -61,6 +61,23 @@ db.version(2).stores({
   schedule: "@id, calId",
 })
 
+db.on("populate", (transaction) => {
+  const DEFAULT_BUDGET: Budget[] = [
+    {
+      name: "category",
+      time: 600,
+      total: false,
+      subcategories: [
+        { name: "a", time: 100, total: false },
+        { name: "b", time: 400, total: false },
+      ],
+    },
+  ]
+
+  // Id cannot auto-generate here. Just need to do this once, then everything else works fine
+  transaction.table("budget").add({ id: "-1", weekId: -1, budget: DEFAULT_BUDGET })
+})
+
 db.cloud.configure({
   databaseUrl: "https://zwbp22kky.dexie.cloud",
   // Auth should not be required, can use offline
