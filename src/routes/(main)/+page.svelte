@@ -365,19 +365,27 @@
       (targetSelection?.category === categoryName && targetSelection.subcategory)}
     {@const isCategoryDisabled = showReallocationMode && !sourceSelection && categoryAvailable <= 0}
 
+    {@const totalCategorySpillover =
+      category.time - category.subcategories.reduce((sum, s) => sum + s.time, 0)}
+    {@const remainingCategorySpillover = Math.max(
+      0,
+      totalCategorySpillover - (categoryOverages[categoryName] ?? 0),
+    )}
+
     <div
       class="block {isSourceCategory || isTargetCategory || hasSelectedSubcategory
         ? 'rounded border bg-white p-2'
         : ''}"
     >
-      <LabeledProgress
-        spent={categoryOverages[categoryName] ?? 0}
-        budget={category.time - category.subcategories.reduce((sum, s) => sum + s.time, 0)}
-        style={showReallocationMode
+      <div
+        class="px-3 py-1 {showReallocationMode
           ? !sourceSelection && categoryAvailable <= 0
-            ? "cursor-not-allowed opacity-50 grayscale"
-            : "cursor-pointer"
-          : ""}
+            ? 'cursor-not-allowed opacity-50 grayscale'
+            : 'cursor-pointer'
+          : ''}"
+        role={showReallocationMode && !(!sourceSelection && categoryAvailable <= 0)
+          ? "button"
+          : undefined}
         onclick={showReallocationMode && !(!sourceSelection && categoryAvailable <= 0)
           ? () => handleCategoryClick(categoryName)
           : undefined}
@@ -391,7 +399,7 @@
         >
           {categoryName}
         </h2>
-      </LabeledProgress>
+      </div>
 
       {#each category.subcategories as sub}
         {@const subcategoryName = sub.name}
@@ -419,6 +427,8 @@
           <LabeledProgress
             spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
             budget={subcategoryBudget}
+            totalCategorySpillover={totalCategorySpillover}
+            remainingCategorySpillover={remainingCategorySpillover}
             style={showReallocationMode
               ? !sourceSelection && subcategoryAvailable <= 0
                 ? "cursor-not-allowed"
