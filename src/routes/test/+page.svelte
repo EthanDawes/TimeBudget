@@ -8,6 +8,9 @@
   let spentB = $state(0)
   let budgetB = $state(5)
 
+  let spentC = $state(0)
+  let budgetC = $state(5)
+
   let totalCategorySpillover = $derived(categoryBudget - (budgetA + budgetB))
 
   let overageA = $derived(Math.max(0, spentA - budgetA))
@@ -114,4 +117,18 @@
       Unallocated time
     </LabeledProgress>
   </div>
+
+  <!-- Single bar -->
+  <div class="grid grid-cols-2 gap-4 rounded border p-4">
+    <label class="flex flex-col gap-1">
+      <span class="text-sm font-medium">"c" spent</span>
+      <input type="number" bind:value={spentC} class="rounded border px-2 py-1" />
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-sm font-medium">"c" allocated</span>
+      <input type="number" bind:value={budgetC} class="rounded border px-2 py-1" />
+    </label>
+  </div>
+
+  <LabeledProgress spent={spentC} budget={budgetC}>c</LabeledProgress>
 </div>

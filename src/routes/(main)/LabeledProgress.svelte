@@ -34,7 +34,7 @@
   let isMultiBar = $derived(totalCategorySpillover !== undefined)
 
   // Single-bar: green fill percentage
-  let singlePct = $derived(budget > 0 ? Math.min(100, (spent / budget) * 100) : 0)
+  let singlePct = $derived(budget > 0 ? (spent / budget) * 100 : 0)
 
   let overage = $derived(Math.max(0, spent - budget))
   let yellowAmount = $derived(categorySpilloverForThis)
@@ -51,12 +51,14 @@
   })
 
   let greenPct = $derived.by(() => {
-    if (!isMultiBar || totalBarUnits === 0) return singlePct
+    const overage = 10000 / singlePct
+    if (!isMultiBar || totalBarUnits === 0) return overage < 100 ? overage : singlePct
     return (Math.min(spent, budget) / totalBarUnits) * 100
   })
 
   let yellowPct = $derived.by(() => {
-    if (!isMultiBar || totalBarUnits === 0) return 0
+    const overage = 100 - 10000 / singlePct
+    if (!isMultiBar || totalBarUnits === 0) return Math.max(0, overage)
     return (yellowAmount / totalBarUnits) * 100
   })
 
@@ -78,16 +80,14 @@
         class="h-full bg-emerald-500 transition-all duration-300"
         style="width: {greenPct}%"
       ></div>
-      {#if isMultiBar}
-        <div
-          class="h-full bg-yellow-400 transition-all duration-300"
-          style="width: {yellowPct}%"
-        ></div>
-        <div
-          class="h-full bg-orange-400 transition-all duration-300"
-          style="width: {orangePct}%"
-        ></div>
-      {/if}
+      <div
+        class="h-full bg-yellow-400 transition-all duration-300"
+        style="width: {yellowPct}%"
+      ></div>
+      <div
+        class="h-full bg-orange-400 transition-all duration-300"
+        style="width: {orangePct}%"
+      ></div>
     </div>
   </div>
   <div
