@@ -237,11 +237,6 @@
     )
   })
 
-  // Remaining unallocated time after all orange overages (for orange empty space in subcategory bars)
-  let remainingUnallocated = $derived(
-    Math.max(0, unallocatedTime - calculateOverage(budget, accumulatedTime)),
-  )
-
   // Calculate preview budget
   let previewBudget = $derived.by(() => {
     if (!sourceSelection || !targetSelection || reallocationAmount <= 0) {
@@ -370,19 +365,12 @@
       (targetSelection?.category === categoryName && targetSelection.subcategory)}
     {@const isCategoryDisabled = showReallocationMode && !sourceSelection && categoryAvailable <= 0}
 
-    {@const totalCategorySpillover = Math.max(
+    {@const totalCategorySpillover =
+      category.time - category.subcategories.reduce((sum, s) => sum + s.time, 0)}
+    {@const remainingCategorySpillover = Math.max(
       0,
-      category.time - category.subcategories.reduce((sum, s) => sum + s.time, 0),
+      totalCategorySpillover - (categoryOverages[categoryName] ?? 0),
     )}
-    {@const totalSubcatOverages = categoryOverages[categoryName] ?? 0}
-    {@const remainingCategorySpillover = Math.max(0, totalCategorySpillover - totalSubcatOverages)}
-    {@const numOverBudgetSubcats = category.subcategories.filter(
-      (s) => (accumulatedTime[categoryName + s.name] ?? 0) > s.time,
-    ).length}
-    {@const allocatedSpilloverPerSubcat =
-      totalSubcatOverages > totalCategorySpillover && numOverBudgetSubcats > 0
-        ? totalCategorySpillover / numOverBudgetSubcats
-        : totalCategorySpillover}
 
     <div
       class="block {isSourceCategory || isTargetCategory || hasSelectedSubcategory
@@ -439,9 +427,8 @@
           <LabeledProgress
             spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
             budget={subcategoryBudget}
-            allocatedSpillover={allocatedSpilloverPerSubcat}
+            totalCategorySpillover={totalCategorySpillover}
             remainingCategorySpillover={remainingCategorySpillover}
-            remainingUnallocated={remainingUnallocated}
             style={showReallocationMode
               ? !sourceSelection && subcategoryAvailable <= 0
                 ? "cursor-not-allowed"
