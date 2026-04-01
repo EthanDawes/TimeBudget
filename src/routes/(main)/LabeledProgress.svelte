@@ -9,9 +9,10 @@
     budget: number
     style?: string
     onclick?: MouseEventHandler<HTMLDivElement>
-    // Multi-bar mode: provide both to show yellow/orange overage segments
-    totalCategorySpillover?: number
-    remainingCategorySpillover?: number
+    // Multi-bar mode props
+    allocatedSpillover?: number        // yellow/orange threshold; full spillover unless split-evenly applies
+    remainingCategorySpillover?: number // empty space in yellow territory (global remaining spillover)
+    remainingUnallocated?: number       // empty space in orange territory
   }
 
   let {
@@ -20,20 +21,28 @@
     budget,
     style = "",
     onclick,
-    totalCategorySpillover,
+    allocatedSpillover,
     remainingCategorySpillover = 0,
+    remainingUnallocated = 0,
   }: ProgressProps = $props()
 
-  let isMultiBar = $derived(totalCategorySpillover !== undefined)
+  let isMultiBar = $derived(allocatedSpillover !== undefined)
+  let overage = $derived(Math.max(0, spent - budget))
 
-  // Single-bar: green fill percentage
+  // Single-bar percentage
   let singlePct = $derived(budget > 0 ? Math.min(100, (spent / budget) * 100) : 0)
 
-  // Multi-bar segment percentages
+  // Total bar width in time units
   let totalBarUnits = $derived.by(() => {
     if (!isMultiBar) return budget
-    if (spent < budget) return budget
-    return spent + remainingCategorySpillover
+    if (spent <= budget) return budget
+    if (overage <= allocatedSpillover!) {
+      // Yellow territory: extend by remaining global spillover
+      return spent + remainingCategorySpillover
+    } else {
+      // Orange territory: extend by remaining unallocated
+      return spent + remainingUnallocated
+    }
   })
 
   let greenPct = $derived.by(() => {
@@ -43,14 +52,24 @@
 
   let yellowPct = $derived.by(() => {
     if (!isMultiBar || totalBarUnits === 0) return 0
-    const overage = Math.max(0, spent - budget)
-    return (Math.min(overage, totalCategorySpillover!) / totalBarUnits) * 100
+    return (Math.min(overage, allocatedSpillover!) / totalBarUnits) * 100
   })
 
   let orangePct = $derived.by(() => {
     if (!isMultiBar || totalBarUnits === 0) return 0
-    const overage = Math.max(0, spent - budget)
-    return (Math.max(0, overage - totalCategorySpillover!) / totalBarUnits) * 100
+    return (Math.max(0, overage - allocatedSpillover!) / totalBarUnits) * 100
+  })
+
+  // Label: when in spillover, show remaining/total of this subcat's allocated spillover
+  // (negative means overdraft into unallocated)
+  let labelRemaining = $derived.by(() => {
+    if (!isMultiBar || overage === 0) return budget - spent
+    return budget + allocatedSpillover! - spent
+  })
+
+  let labelTotal = $derived.by(() => {
+    if (!isMultiBar || overage === 0) return budget
+    return allocatedSpillover!
   })
 </script>
 
@@ -80,7 +99,7 @@
       {@render children?.()}
     </div>
     <div class="flex-shrink-0">
-      {fmtDuration(budget - spent)} / {fmtDuration(budget)}
+      {fmtDuration(labelRemaining)} / {fmtDuration(labelTotal)}
     </div>
   </div>
 </div>
