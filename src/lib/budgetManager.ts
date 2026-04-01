@@ -30,25 +30,30 @@ export async function saveBudgetConfig(budget: Budget[], startImmediate = false)
 // If no entry exists for the current week, creates one from the global config.
 export async function loadWeeklyBudgetConfig(): Promise<Budget[]> {
   const weekId = getWeekId()
-  const record = await db.budget.where("weekId").equals(weekId).first()
-  if (record) return record.budget
 
-  // No weekly budget yet; seed from global config
-  const globalBudget = await loadBudgetConfig()
-  const newBudget = structuredClone(globalBudget)
-  await db.budget.add({ weekId, budget: newBudget })
-  return newBudget
+  return db.transaction("rw", db.budget, async () => {
+    const record = await db.budget.where("weekId").equals(weekId).first()
+    if (record) return record.budget
+
+    // No weekly budget yet; seed from global config
+    const globalBudget = await loadBudgetConfig()
+    const newBudget = structuredClone(globalBudget)
+    await db.budget.add({ weekId, budget: newBudget })
+    return newBudget
+  })
 }
 
 // Save weekly budget configuration with reallocations
 export async function saveWeeklyBudgetConfig(budget: Budget[]): Promise<void> {
   const weekId = getWeekId()
-  const existing = await db.budget.where("weekId").equals(weekId).first()
-  if (existing) {
-    await db.budget.update(existing.id, { budget })
-  } else {
-    await db.budget.add({ weekId, budget })
-  }
+  await db.transaction("rw", db.budget, async () => {
+    const existing = await db.budget.where("weekId").equals(weekId).first()
+    if (existing) {
+      await db.budget.update(existing.id, { budget })
+    } else {
+      await db.budget.add({ weekId, budget })
+    }
+  })
 }
 
 export async function loadWeeklyData() {
