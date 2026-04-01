@@ -102,7 +102,7 @@ const budget = [
     Subcat("Lectures", Plus(0)),
   ]),
   Category("Jobs", Plus(0), [
-    Subcat("Internships", Total(1 * HOUR * DAILY)),
+    Subcat("Internships", Total(1 * DAILY)),
     Subcat("RHA", Plus(0)),
     Subcat(
       "RA",
@@ -113,10 +113,10 @@ const budget = [
     Subcat("Eat", Spread(6.5, FREE, [everyday, 1])),
     Subcat("Sleep", Spread(8 * DAILY, ROLLOVER, [everyday, 1])),
     Subcat("Excercise", Spread(0.5 * DAILY, FREE, [everyday, 1])),
-    Subcat("Mindfullness", Total(10 * MINUTE * DAILY)),
+    Subcat("Mindfullness", Total((10 / HOUR) * DAILY)),
     // Morning/evening routine accounted for in cal
     // `shower` is the only case where I might want the ability to create events that aren't in my cal, but later problem
-    Subcat("Chores", Plus(20 * MINUTE * (DAILY / 2) /* Shower */ + 2 * HOUR /* misc */)),
+    Subcat("Chores", Plus((20 / HOUR) * (DAILY / 2) /* Shower */ + 2 /* misc */)),
   ]),
   Category("Curiosity", Total(15), [
     Subcat("Learning", Total(5)),

@@ -373,7 +373,10 @@
       0,
       totalCategorySpillover - totalSubcategoryOverage,
     )}
-    {@const unallocatedOverage = calculateOverage(showReallocationMode ? previewBudget : budget, accumulatedTime)}
+    {@const unallocatedOverage = calculateOverage(
+      showReallocationMode ? previewBudget : budget,
+      accumulatedTime,
+    )}
     {@const remainingUnallocated = Math.max(0, unallocatedTime - unallocatedOverage)}
 
     <div
@@ -439,7 +442,7 @@
           <LabeledProgress
             spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
             budget={subcategoryBudget}
-            totalCategorySpillover={totalCategorySpillover}
+            {totalCategorySpillover}
             {categorySpilloverForThis}
             {remainingCategorySpillover}
             {remainingUnallocated}
