@@ -57,7 +57,7 @@ export const db = new Dexie("TimeBudgetDb", { addons: [dexieCloud] }) as Dexie &
 // Schema declaration:
 db.version(2).stores({
   timeEntries: "@id, category, [category+subcategory], timestampStart", // primary key "id" (for the runtime!)
-  budget: "@id, weekId",
+  budget: "@id, &weekId",
   schedule: "@id, calId",
 })
 
@@ -75,7 +75,7 @@ db.on("populate", (transaction) => {
   ]
 
   // Id cannot auto-generate here. Just need to do this once, then everything else works fine
-  transaction.table("budget").add({ id: "-1", weekId: -1, budget: DEFAULT_BUDGET })
+  transaction.table("budget").add({ id: "bdg-1", weekId: -1, budget: DEFAULT_BUDGET })
 })
 
 db.cloud.configure({
