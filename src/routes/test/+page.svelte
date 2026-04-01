@@ -23,6 +23,10 @@
     totalSubcategoryOverage > 0 ? (overageB / totalSubcategoryOverage) * poolAllocated : 0,
   )
 
+  let remainingCategorySpillover = $derived(
+    Math.max(0, totalCategorySpillover - totalSubcategoryOverage),
+  )
+
   // Unallocated time consumed by overages that exceeded the category pool
   let unallocatedConsumed = $derived(Math.max(0, totalSubcategoryOverage - totalCategorySpillover))
   let remainingUnallocated = $derived(Math.max(0, unallocatedBudget - unallocatedConsumed))
@@ -72,9 +76,10 @@
     </label>
 
     <div class="col-span-2 mt-2 text-sm text-gray-600">
-      totalCategorySpillover: {totalCategorySpillover} &nbsp;|&nbsp; poolAllocated: {poolAllocated}
-      &nbsp;|&nbsp; spilloverForA: {categorySpilloverForA.toFixed(2)} &nbsp;|&nbsp; spilloverForB:
-      {categorySpilloverForB.toFixed(2)} &nbsp;|&nbsp; remainingUnallocated: {remainingUnallocated}
+      totalCategorySpillover: {totalCategorySpillover} &nbsp;|&nbsp; remainingCategorySpillover:
+      {remainingCategorySpillover} &nbsp;|&nbsp; spilloverForA: {categorySpilloverForA.toFixed(2)}
+      &nbsp;|&nbsp; spilloverForB: {categorySpilloverForB.toFixed(2)} &nbsp;|&nbsp; remainingUnallocated:
+      {remainingUnallocated}
     </div>
   </div>
 
@@ -86,6 +91,7 @@
       budget={budgetA}
       {totalCategorySpillover}
       categorySpilloverForThis={categorySpilloverForA}
+      {remainingCategorySpillover}
       {remainingUnallocated}
     >
       a
@@ -96,6 +102,7 @@
       budget={budgetB}
       {totalCategorySpillover}
       categorySpilloverForThis={categorySpilloverForB}
+      {remainingCategorySpillover}
       {remainingUnallocated}
     >
       b

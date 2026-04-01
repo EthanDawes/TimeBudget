@@ -10,11 +10,12 @@
     style?: string
     onclick?: MouseEventHandler<HTMLDivElement>
     // Multi-bar mode: provide totalCategorySpillover to activate.
-    // categorySpilloverForThis: how much of this subcategory's overage is covered by the
-    //   category pool (yellow). Parent computes this proportionally across siblings.
-    // remainingUnallocated: extends the bar as gray space to show available unallocated time.
+    // categorySpilloverForThis: yellow amount for this subcategory (proportionally allocated by parent).
+    // remainingCategorySpillover: global remaining pool (extends bar as gray in yellow region).
+    // remainingUnallocated: extends bar as gray ONLY when orange > 0 (category pool fully exhausted).
     totalCategorySpillover?: number
     categorySpilloverForThis?: number
+    remainingCategorySpillover?: number
     remainingUnallocated?: number
   }
 
@@ -26,6 +27,7 @@
     onclick,
     totalCategorySpillover,
     categorySpilloverForThis = 0,
+    remainingCategorySpillover = 0,
     remainingUnallocated = 0,
   }: ProgressProps = $props()
 
@@ -38,10 +40,14 @@
   let yellowAmount = $derived(categorySpilloverForThis)
   let orangeAmount = $derived(Math.max(0, overage - yellowAmount))
 
+  // Bar width:
+  // - Under budget: just the budget (standard)
+  // - Yellow region: spent + remaining pool = budget + total pool (stable)
+  // - Orange region: spent + remaining unallocated (stable, shows gray = remaining unallocated)
   let totalBarUnits = $derived.by(() => {
     if (!isMultiBar) return budget
     if (spent <= budget) return budget
-    return Math.max(spent, budget + yellowAmount) + remainingUnallocated
+    return spent + remainingCategorySpillover + (orangeAmount > 0 ? remainingUnallocated : 0)
   })
 
   let greenPct = $derived.by(() => {
@@ -59,11 +65,8 @@
     return (orangeAmount / totalBarUnits) * 100
   })
 
-  // Label: remaining time considering all pools (no negatives in multi-bar overage)
-  let labelRemaining = $derived.by(() => {
-    if (!isMultiBar || spent <= budget) return budget - spent
-    return Math.max(0, budget + yellowAmount + remainingUnallocated - spent)
-  })
+  // totalBarUnits is stable (constant as spent increases), so this decreases by exactly 1 per unit spent
+  let labelRemaining = $derived(isMultiBar && spent > budget ? totalBarUnits - spent : budget - spent)
 </script>
 
 <div class={"relative w-full " + style} {onclick} role={onclick ? "button" : undefined}>

@@ -369,6 +369,10 @@
       category.time - category.subcategories.reduce((sum, s) => sum + s.time, 0)}
     {@const totalSubcategoryOverage = categoryOverages[categoryName] ?? 0}
     {@const poolAllocated = Math.min(totalSubcategoryOverage, totalCategorySpillover)}
+    {@const remainingCategorySpillover = Math.max(
+      0,
+      totalCategorySpillover - totalSubcategoryOverage,
+    )}
     {@const unallocatedOverage = calculateOverage(showReallocationMode ? previewBudget : budget, accumulatedTime)}
     {@const remainingUnallocated = Math.max(0, unallocatedTime - unallocatedOverage)}
 
@@ -437,6 +441,7 @@
             budget={subcategoryBudget}
             totalCategorySpillover={totalCategorySpillover}
             {categorySpilloverForThis}
+            {remainingCategorySpillover}
             {remainingUnallocated}
             style={showReallocationMode
               ? !sourceSelection && subcategoryAvailable <= 0
