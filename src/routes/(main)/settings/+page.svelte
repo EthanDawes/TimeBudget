@@ -11,8 +11,8 @@
     config = JSON.stringify(budgetConfig, null, 2)
   })
 
-  async function saveClick() {
-    await saveBudgetConfig(JSON.parse(config))
+  async function saveClick(startImmediate: boolean) {
+    await saveBudgetConfig(JSON.parse(config), startImmediate)
     goto(resolve("/"))
   }
 </script>
@@ -22,9 +22,8 @@
 </svelte:head>
 
 <textarea class="h-[87vh] w-full border" bind:value={config}></textarea>
-<small>
-  If no rebudgeting has been done this week, changes will take effect immediately. Otherwise,
-  they'll affect next week.
-</small>
-<br />
-<button class="border" onclick={saveClick}>Save</button>
+<p>
+  Save and apply starting
+  <button class="border" onclick={saveClick.bind(null, false)}>next week</button>
+  <button class="border" onclick={saveClick.bind(null, true)}>this week</button>
+</p>

@@ -15,9 +15,14 @@ export async function loadBudgetConfig(): Promise<Budget[]> {
 }
 
 // Save global budget configuration to IndexedDB
-export async function saveBudgetConfig(budget: Budget[]): Promise<void> {
-  const existing = await db.budget.where("weekId").equals(GLOBAL_CONFIG_WEEK_ID).first()
+export async function saveBudgetConfig(budget: Budget[], startImmediate = false): Promise<void> {
+  const weekId = getWeekId()
+  const existing = await db.budget
+    .where("weekId")
+    .equals(startImmediate ? weekId : GLOBAL_CONFIG_WEEK_ID)
+    .first()
   await db.budget.update(existing!.id, { budget })
+  if (startImmediate) saveBudgetConfig(budget, false)
 }
 
 // Load weekly budget (with reallocations applied) from IndexedDB.
