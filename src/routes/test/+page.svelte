@@ -1,22 +1,18 @@
 <script lang="ts">
   import LabeledProgress from "../(main)/LabeledProgress.svelte"
 
-  let categoryBudget = $state(120)
+  let categoryBudget = $state(15)
   let unallocatedBudget = $state(60)
-  let spentA = $state(30)
-  let budgetA = $state(60)
-  let spentB = $state(20)
-  let budgetB = $state(40)
+  let spentA = $state(0)
+  let budgetA = $state(5)
+  let spentB = $state(0)
+  let budgetB = $state(5)
 
   let totalCategorySpillover = $derived(categoryBudget - (budgetA + budgetB))
 
-  let categoryOverage = $derived(
-    Math.max(0, spentA - budgetA) + Math.max(0, spentB - budgetB),
-  )
+  let categoryOverage = $derived(Math.max(0, spentA - budgetA) + Math.max(0, spentB - budgetB))
 
-  let remainingCategorySpillover = $derived(
-    Math.max(0, totalCategorySpillover - categoryOverage),
-  )
+  let remainingCategorySpillover = $derived(Math.max(0, totalCategorySpillover - categoryOverage))
 
   // Amount that has spilled beyond the category buffer into unallocated time
   let unallocatedSpent = $derived(Math.max(0, categoryOverage - totalCategorySpillover))
@@ -63,9 +59,8 @@
     </label>
 
     <div class="col-span-2 mt-2 text-sm text-gray-600">
-      totalCategorySpillover: {totalCategorySpillover} &nbsp;|&nbsp;
-      categoryOverage: {categoryOverage} &nbsp;|&nbsp;
-      remainingCategorySpillover: {remainingCategorySpillover}
+      totalCategorySpillover: {totalCategorySpillover} &nbsp;|&nbsp; categoryOverage: {categoryOverage}
+      &nbsp;|&nbsp; remainingCategorySpillover: {remainingCategorySpillover}
     </div>
   </div>
 
@@ -75,8 +70,8 @@
     <LabeledProgress
       spent={spentA}
       budget={budgetA}
-      totalCategorySpillover={totalCategorySpillover}
-      remainingCategorySpillover={remainingCategorySpillover}
+      {totalCategorySpillover}
+      {remainingCategorySpillover}
     >
       a
     </LabeledProgress>
@@ -84,8 +79,8 @@
     <LabeledProgress
       spent={spentB}
       budget={budgetB}
-      totalCategorySpillover={totalCategorySpillover}
-      remainingCategorySpillover={remainingCategorySpillover}
+      {totalCategorySpillover}
+      {remainingCategorySpillover}
     >
       b
     </LabeledProgress>
