@@ -9,9 +9,13 @@
     budget: number
     style?: string
     onclick?: MouseEventHandler<HTMLDivElement>
-    // Multi-bar mode: provide both to show yellow/orange overage segments
+    // Multi-bar mode: provide totalCategorySpillover to activate.
+    // categorySpilloverForThis: how much of this subcategory's overage is covered by the
+    //   category pool (yellow). Parent computes this proportionally across siblings.
+    // remainingUnallocated: extends the bar as gray space to show available unallocated time.
     totalCategorySpillover?: number
-    remainingCategorySpillover?: number
+    categorySpilloverForThis?: number
+    remainingUnallocated?: number
   }
 
   let {
@@ -21,7 +25,8 @@
     style = "",
     onclick,
     totalCategorySpillover,
-    remainingCategorySpillover = 0,
+    categorySpilloverForThis = 0,
+    remainingUnallocated = 0,
   }: ProgressProps = $props()
 
   let isMultiBar = $derived(totalCategorySpillover !== undefined)
@@ -29,11 +34,14 @@
   // Single-bar: green fill percentage
   let singlePct = $derived(budget > 0 ? Math.min(100, (spent / budget) * 100) : 0)
 
-  // Multi-bar segment percentages
+  let overage = $derived(Math.max(0, spent - budget))
+  let yellowAmount = $derived(categorySpilloverForThis)
+  let orangeAmount = $derived(Math.max(0, overage - yellowAmount))
+
   let totalBarUnits = $derived.by(() => {
     if (!isMultiBar) return budget
-    if (spent < budget) return budget
-    return spent + remainingCategorySpillover
+    if (spent <= budget) return budget
+    return Math.max(spent, budget + yellowAmount) + remainingUnallocated
   })
 
   let greenPct = $derived.by(() => {
@@ -43,14 +51,18 @@
 
   let yellowPct = $derived.by(() => {
     if (!isMultiBar || totalBarUnits === 0) return 0
-    const overage = Math.max(0, spent - budget)
-    return (Math.min(overage, totalCategorySpillover!) / totalBarUnits) * 100
+    return (yellowAmount / totalBarUnits) * 100
   })
 
   let orangePct = $derived.by(() => {
     if (!isMultiBar || totalBarUnits === 0) return 0
-    const overage = Math.max(0, spent - budget)
-    return (Math.max(0, overage - totalCategorySpillover!) / totalBarUnits) * 100
+    return (orangeAmount / totalBarUnits) * 100
+  })
+
+  // Label: remaining time considering all pools (no negatives in multi-bar overage)
+  let labelRemaining = $derived.by(() => {
+    if (!isMultiBar || spent <= budget) return budget - spent
+    return Math.max(0, budget + yellowAmount + remainingUnallocated - spent)
   })
 </script>
 
@@ -80,7 +92,7 @@
       {@render children?.()}
     </div>
     <div class="flex-shrink-0">
-      {fmtDuration(budget - spent)} / {fmtDuration(budget)}
+      {fmtDuration(labelRemaining)} / {fmtDuration(budget)}
     </div>
   </div>
 </div>

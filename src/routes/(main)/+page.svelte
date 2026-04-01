@@ -367,10 +367,10 @@
 
     {@const totalCategorySpillover =
       category.time - category.subcategories.reduce((sum, s) => sum + s.time, 0)}
-    {@const remainingCategorySpillover = Math.max(
-      0,
-      totalCategorySpillover - (categoryOverages[categoryName] ?? 0),
-    )}
+    {@const totalSubcategoryOverage = categoryOverages[categoryName] ?? 0}
+    {@const poolAllocated = Math.min(totalSubcategoryOverage, totalCategorySpillover)}
+    {@const unallocatedOverage = calculateOverage(showReallocationMode ? previewBudget : budget, accumulatedTime)}
+    {@const remainingUnallocated = Math.max(0, unallocatedTime - unallocatedOverage)}
 
     <div
       class="block {isSourceCategory || isTargetCategory || hasSelectedSubcategory
@@ -418,6 +418,14 @@
           targetSelection?.subcategory === subcategoryName}
 
         {@const isDisabled = showReallocationMode && !sourceSelection && subcategoryAvailable <= 0}
+        {@const subcategoryOverage = Math.max(
+          0,
+          (accumulatedTime[categoryName + subcategoryName] ?? 0) - subcategoryBudget,
+        )}
+        {@const categorySpilloverForThis =
+          totalSubcategoryOverage > 0
+            ? (subcategoryOverage / totalSubcategoryOverage) * poolAllocated
+            : 0}
 
         <div
           class="{isSourceSubcategory || isTargetSubcategory
@@ -428,7 +436,8 @@
             spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
             budget={subcategoryBudget}
             totalCategorySpillover={totalCategorySpillover}
-            remainingCategorySpillover={remainingCategorySpillover}
+            {categorySpilloverForThis}
+            {remainingUnallocated}
             style={showReallocationMode
               ? !sourceSelection && subcategoryAvailable <= 0
                 ? "cursor-not-allowed"

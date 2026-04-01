@@ -10,12 +10,25 @@
 
   let totalCategorySpillover = $derived(categoryBudget - (budgetA + budgetB))
 
-  let categoryOverage = $derived(Math.max(0, spentA - budgetA) + Math.max(0, spentB - budgetB))
+  let overageA = $derived(Math.max(0, spentA - budgetA))
+  let overageB = $derived(Math.max(0, spentB - budgetB))
+  let totalSubcategoryOverage = $derived(overageA + overageB)
 
-  let remainingCategorySpillover = $derived(Math.max(0, totalCategorySpillover - categoryOverage))
+  // Proportional allocation of the shared category pool across subcategories
+  let poolAllocated = $derived(Math.min(totalSubcategoryOverage, totalCategorySpillover))
+  let categorySpilloverForA = $derived(
+    totalSubcategoryOverage > 0 ? (overageA / totalSubcategoryOverage) * poolAllocated : 0,
+  )
+  let categorySpilloverForB = $derived(
+    totalSubcategoryOverage > 0 ? (overageB / totalSubcategoryOverage) * poolAllocated : 0,
+  )
 
-  // Amount that has spilled beyond the category buffer into unallocated time
-  let unallocatedSpent = $derived(Math.max(0, categoryOverage - totalCategorySpillover))
+  // Unallocated time consumed by overages that exceeded the category pool
+  let unallocatedConsumed = $derived(Math.max(0, totalSubcategoryOverage - totalCategorySpillover))
+  let remainingUnallocated = $derived(Math.max(0, unallocatedBudget - unallocatedConsumed))
+
+  // Unallocated bar: shows how much unallocated time has been consumed
+  let unallocatedSpent = $derived(unallocatedConsumed)
 </script>
 
 <svelte:head>
@@ -59,8 +72,9 @@
     </label>
 
     <div class="col-span-2 mt-2 text-sm text-gray-600">
-      totalCategorySpillover: {totalCategorySpillover} &nbsp;|&nbsp; categoryOverage: {categoryOverage}
-      &nbsp;|&nbsp; remainingCategorySpillover: {remainingCategorySpillover}
+      totalCategorySpillover: {totalCategorySpillover} &nbsp;|&nbsp; poolAllocated: {poolAllocated}
+      &nbsp;|&nbsp; spilloverForA: {categorySpilloverForA.toFixed(2)} &nbsp;|&nbsp; spilloverForB:
+      {categorySpilloverForB.toFixed(2)} &nbsp;|&nbsp; remainingUnallocated: {remainingUnallocated}
     </div>
   </div>
 
@@ -71,7 +85,8 @@
       spent={spentA}
       budget={budgetA}
       {totalCategorySpillover}
-      {remainingCategorySpillover}
+      categorySpilloverForThis={categorySpilloverForA}
+      {remainingUnallocated}
     >
       a
     </LabeledProgress>
@@ -80,7 +95,8 @@
       spent={spentB}
       budget={budgetB}
       {totalCategorySpillover}
-      {remainingCategorySpillover}
+      categorySpilloverForThis={categorySpilloverForB}
+      {remainingUnallocated}
     >
       b
     </LabeledProgress>
