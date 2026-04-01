@@ -66,10 +66,12 @@
   })
 
   // totalBarUnits is stable (constant as spent increases), so this decreases by exactly 1 per unit spent
-  let labelRemaining = $derived(isMultiBar && spent > budget ? totalBarUnits - spent : budget - spent)
+  let labelRemaining = $derived(
+    isMultiBar && spent > budget ? totalBarUnits - spent : budget - spent,
+  )
 </script>
 
-<div class={"relative w-full " + style} {onclick} role={onclick ? "button" : undefined}>
+<div class={"relative mb-1.25 w-full " + style} {onclick} role={onclick ? "button" : undefined}>
   <div class="h-8 w-full overflow-hidden rounded-md bg-gray-200">
     <div class="flex h-full">
       <div
