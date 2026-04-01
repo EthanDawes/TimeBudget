@@ -25,20 +25,23 @@ const FREE = -2
 const bitmaskToArray = (mask) =>
   Array.from({ length: 7 }, (_, i) => i).filter((i) => mask & (1 << i))
 
+let totalWeekBudgetedTime = 0 // For validation that you didn't go over
+
 // Category `time` can't be `Spread`, only subcat
 function Category(name, time, subcategories) {
-  // subcatTotal can't be computed ahead of time because then you lose info about whether adding an event should increase the total time or nonetheless
-  // There'll probably need to be a 3rd db `computedBudget`. This'll also allow tracking budgets over weeks
+  let totalTime = time.num
   for (const subcat of subcategories) {
     if (subcat.spread) {
       _Spread(name, subcat.name, ...subcat.spread)
     }
     delete subcat.spread
+    if (time.type === "plus") totalTime += subcat.time
   }
 
+  totalWeekBudgetedTime += totalTime
   return {
     name,
-    time: time.num,
+    time: totalTime,
     total: time.type === "total",
     subcategories,
   }
@@ -82,9 +85,6 @@ const Subcat = (name, time) => ({
 const creditHours = 11
 const workPerCredHour = 3
 const courseworkTotal = creditHours * workPerCredHour
-console.log(
-  `At ${creditHours} credit hours and ${workPerCredHour} hours/credit hour, you're expected to spend ${courseworkTotal}hr on school`,
-)
 
 // `Subcat` need not contain every event, since inputting is tedious and is prone to change. It makes more sense to just pull from my gcal and assign categories to events.
 // Things that I don't schedule on calendar but do nonetheless (see 'Wellness') use `Spread` to pre-budget time (convienence)
@@ -125,6 +125,8 @@ const budget = [
   ]),
   Category("Relax", Total(5), [Subcat("Relax", Total(5))]),
 ]
+
+console.log(`You have scheduled ${totalWeekBudgetedTime / HOUR}/168 hours each week`)
 
 console.log(budget)
 console.log(schedule)
