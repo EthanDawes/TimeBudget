@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { headerHeight, tableHeight, labelWidth } from "./+page.svelte"
+  import { headerHeight, tableHeight, labelWidth } from "$lib/cal/CalGrid.svelte"
   import type { Snippet } from "svelte"
 
   interface EventProps {
