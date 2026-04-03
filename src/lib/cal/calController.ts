@@ -38,6 +38,19 @@ export function connectWithGoogle(clientId: string): Promise<string> {
   })
 }
 
+export async function getAllCalendars(): Promise<any[]> {
+  const token = getAccessToken()
+  if (!token) throw new Error("Not authenticated with Google")
+
+  const headers = { Authorization: `Bearer ${token}` }
+
+  const calListRes = await fetch(`${GCAL_API}/users/me/calendarList`, { headers })
+  if (!calListRes.ok) throw new Error(`Failed to fetch calendar list: ${calListRes.status}`)
+  const calList = await calListRes.json()
+
+  return calList.items
+}
+
 /** Returns all events happening this week from all calendars */
 export async function getAllEvents(): Promise<any[]> {
   const token = getAccessToken()
@@ -50,13 +63,10 @@ export async function getAllEvents(): Promise<any[]> {
   const timeMax = new Date(weekEndMs).toISOString()
 
   const headers = { Authorization: `Bearer ${token}` }
-
-  const calListRes = await fetch(`${GCAL_API}/users/me/calendarList`, { headers })
-  if (!calListRes.ok) throw new Error(`Failed to fetch calendar list: ${calListRes.status}`)
-  const calList = await calListRes.json()
+  const calList = await getAllCalendars()
 
   const eventArrays = await Promise.all(
-    (calList.items as any[]).map(async (cal) => {
+    calList.map(async (cal) => {
       const params = new URLSearchParams({ singleEvents: "true", timeMin, timeMax })
       const res = await fetch(
         `${GCAL_API}/calendars/${encodeURIComponent(cal.id)}/events?${params}`,

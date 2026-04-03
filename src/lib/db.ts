@@ -46,6 +46,10 @@ export interface Schedule {
   // Date field is not needed because schedule recreated every week
 }
 
+export type PersistentPartialSchedule = Pick<Schedule, "cat" | "subcat" | "leftovers">
+export type CalCatMap = Record<string, PersistentPartialSchedule>
+type Metadata = { key: "calIdCatMap"; value: CalCatMap } | { key: "schedule"; value: Schedule[] }
+
 export const db = new Dexie("TimeBudgetDb", { addons: [dexieCloud] }) as Dexie & {
   timeEntries: DexieCloudTable<
     TimeEntry,
@@ -53,13 +57,15 @@ export const db = new Dexie("TimeBudgetDb", { addons: [dexieCloud] }) as Dexie &
   >
   budget: DexieCloudTable<WeekBudget, "id">
   schedule: DexieCloudTable<Schedule, "id">
+  metadata: DexieCloudTable<Metadata, "key">
 }
 
 // Schema declaration:
-db.version(2).stores({
+db.version(3).stores({
   timeEntries: "@id, category, [category+subcategory], timestampStart", // primary key "id" (for the runtime!)
   budget: "@id, &weekId",
   schedule: "@id, calId",
+  metadata: "key",
 })
 
 db.on("populate", (transaction) => {
@@ -77,6 +83,8 @@ db.on("populate", (transaction) => {
 
   // Id cannot auto-generate here. Just need to do this once, then everything else works fine
   transaction.table("budget").add({ id: "bdg-1", weekId: -1, budget: DEFAULT_BUDGET })
+  transaction.table("metadata").add({ key: "calIdCatMap", value: {} })
+  transaction.table("metadata").add({ key: "schedule", value: [] })
 })
 
 db.cloud.configure({
