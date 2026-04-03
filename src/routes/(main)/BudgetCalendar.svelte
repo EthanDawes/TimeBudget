@@ -2,28 +2,35 @@
   import { getWeekStart, HOUR } from "$lib/time.js"
   import CalGrid from "$lib/cal/CalGrid.svelte"
   import CalEvent from "$lib/cal/CalEvent.svelte"
-  import { db } from "$lib/db.js"
+  import { db, type CalCatMap } from "$lib/db.js"
   import type { Budget, Schedule } from "$lib/db"
   import { getSubcategoryColor } from "$lib/cal/calUtil.svelte"
   import { loadBudgetConfig } from "$lib/budgetManager.js"
+  import { liveQuery } from "dexie"
 
-  let events = $state([] as (Schedule & { start: number })[])
   let budget = $state([] as Budget[])
   let activeEvent = $state(null as (Schedule & { start: number }) | null)
   let selectEl = $state(null as HTMLSelectElement | null)
   let clickPos = $state({ x: 0, y: 0 })
 
-  db.schedule
-    .orderBy("[day+cat+subcat]")
-    .toArray()
-    .then((result) => {
-      const dayOffset = Array.from({ length: 7 }).fill(0) as number[]
-      events = result as any
-      for (const event of events) {
-        event.start = dayOffset[event.day]
-        dayOffset[event.day] += event.duration / HOUR
-      }
-    })
+  let _events = $derived(
+    liveQuery(() =>
+      db.schedule
+        .orderBy("[day+cat+subcat]")
+        .toArray()
+        .then((result) => {
+          const events = result as unknown as (Schedule & { start: number })[]
+          const dayOffset = Array.from({ length: 7 }).fill(0) as number[]
+          for (const event of events) {
+            event.start = dayOffset[event.day]
+            dayOffset[event.day] += event.duration / HOUR
+          }
+          return events
+        }),
+    ),
+  )
+
+  let events = $derived($_events)
 
   loadBudgetConfig().then((b) => (budget = b))
 
@@ -46,8 +53,12 @@
     activeEvent = null
   }
 
-  function onselect(event: Schedule, category: string, subcategory: string) {
-    console.log(event, category, subcategory, "selected")
+  async function onselect(event: Schedule, cat: string, subcat: string) {
+    const calCatMap = ((await db.metadata.get("calIdCatMap"))?.value || {}) as CalCatMap
+    calCatMap[event.calId].cat = cat
+    calCatMap[event.calId].subcat = subcat
+    await db.metadata.put({ key: "calIdCatMap", value: calCatMap })
+    await db.schedule.where("calId").equals(event.calId).modify({ cat, subcat })
   }
 </script>
 
@@ -58,7 +69,7 @@
       duration={event.duration / HOUR}
       dayIndex={event.day}
       color={event.cat ? getSubcategoryColor(event.cat, event.subcat) : "red"}
-      onclick={event.cat ? undefined : handleEventClick.bind(null, event)}
+      onclick={event.calId ? handleEventClick.bind(null, event) : undefined}
     >
       {event.name || event.subcat}
     </CalEvent>
