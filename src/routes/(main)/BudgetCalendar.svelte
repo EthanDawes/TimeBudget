@@ -4,6 +4,7 @@
   import CalEvent from "$lib/cal/CalEvent.svelte"
   import { db } from "$lib/db.js"
   import type { Schedule } from "$lib/db"
+  import { getSubcategoryColor } from "$lib/cal/calUtil.svelte"
 
   let events = $state([] as (Schedule & { start: number })[])
   db.schedule.toArray().then((result) => {
@@ -22,7 +23,7 @@
       startHour={event.start}
       duration={event.duration / HOUR}
       dayIndex={event.day}
-      color="red"
+      color={event.cat ? getSubcategoryColor(event.cat, event.subcat!) : "red"}
     >
       {event.name || event.subcat}
     </CalEvent>
