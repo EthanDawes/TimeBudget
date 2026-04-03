@@ -35,8 +35,8 @@ export async function refreshEvents() {
       }
     }
     usedMappings[eventId] = mapping
-    const start = new Date(event.start.datetime)
-    const end = new Date(event.end.datetime)
+    const start = new Date(event.start.dateTime)
+    const end = new Date(event.end.dateTime)
     newEvents.push({
       ...mapping,
       day: new Date().getDay() - 1, // -1 b/c my weeks start on Monday

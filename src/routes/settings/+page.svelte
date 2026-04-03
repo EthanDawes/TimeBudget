@@ -6,6 +6,7 @@
   import { resolve } from "$app/paths"
   import { connectWithGoogle, clearAccessToken, isConnected } from "$lib/cal/calController"
   import { db } from "$lib/db"
+  import CalendarPicker from "./CalendarPicker.svelte"
 
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ""
 
@@ -92,6 +93,10 @@
         >{eventsRefreshing ? "Refreshing..." : "Refresh events"}</button
       >
     </p>
+    {#if googleConnected}
+      <h3>Calendars</h3>
+      <CalendarPicker />
+    {/if}
 
     <!--  Budget  -->
     <br />

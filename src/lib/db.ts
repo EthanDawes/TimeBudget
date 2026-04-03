@@ -48,7 +48,10 @@ export interface Schedule {
 
 export type PersistentPartialSchedule = Pick<Schedule, "cat" | "subcat" | "leftovers">
 export type CalCatMap = Record<string, PersistentPartialSchedule>
-type Metadata = { key: "calIdCatMap"; value: CalCatMap } | { key: "schedule"; value: Schedule[] }
+type Metadata =
+  | { key: "calIdCatMap"; value: CalCatMap }
+  | { key: "schedule"; value: Schedule[] }
+  | { key: "enabledCals"; value: string[] }
 
 export const db = new Dexie("TimeBudgetDb", { addons: [dexieCloud] }) as Dexie & {
   timeEntries: DexieCloudTable<

@@ -1,4 +1,5 @@
 import { getWeekStart, MILLISECOND, DAY } from "$lib/time"
+import { db } from "$lib/db"
 
 const GCAL_API = "https://www.googleapis.com/calendar/v3"
 const TOKEN_KEY = "gcal_access_token"
@@ -63,13 +64,13 @@ export async function getAllEvents(): Promise<any[]> {
   const timeMax = new Date(weekEndMs).toISOString()
 
   const headers = { Authorization: `Bearer ${token}` }
-  const calList = await getAllCalendars()
+  const enabledCals = ((await db.metadata.get("enabledCals"))?.value as string[]) || []
 
   const eventArrays = await Promise.all(
-    calList.map(async (cal) => {
+    enabledCals.map(async (calId) => {
       const params = new URLSearchParams({ singleEvents: "true", timeMin, timeMax })
       const res = await fetch(
-        `${GCAL_API}/calendars/${encodeURIComponent(cal.id)}/events?${params}`,
+        `${GCAL_API}/calendars/${encodeURIComponent(calId)}/events?${params}`,
         { headers },
       )
       if (!res.ok) return []
