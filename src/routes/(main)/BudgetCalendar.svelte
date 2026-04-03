@@ -5,7 +5,11 @@
   import { db, type CalCatMap } from "$lib/db.js"
   import type { Budget, Schedule } from "$lib/db"
   import { getSubcategoryColor } from "$lib/cal/calUtil.svelte"
-  import { loadBudgetConfig } from "$lib/budgetManager.js"
+  import {
+    loadBudgetConfig,
+    loadWeeklyBudgetConfig,
+    saveWeeklyBudgetConfig,
+  } from "$lib/budgetManager.js"
   import { liveQuery } from "dexie"
 
   let budget = $state([] as Budget[])
@@ -54,11 +58,38 @@
   }
 
   async function onselect(event: Schedule, cat: string, subcat: string) {
+    const eventSelector = db.schedule.where("calId").equals(event.calId)
+
+    // Adjust budget
+    const events = await eventSelector.toArray()
+    const budget = await loadWeeklyBudgetConfig()
+    for (const event of events) {
+      if (event.cat) {
+        const budgetCat = budget.find((c) => c.name === event.cat)
+        const budgetSubcat = budgetCat?.subcategories.find((sc) => sc.name === event.subcat)
+        // event is already assigned to a cat, remove time from there
+        if (budgetCat && budgetSubcat) {
+          // TODO: these should be defined, except when cat renamed/finished. TODO: how to handle?
+          if (!budgetSubcat.total) budgetSubcat.time -= event.duration
+          if (!budgetCat.total) budgetCat.time -= event.duration
+        }
+      }
+      // Add time to new (destination) category
+      const budgetCat = budget.find((c) => c.name === cat)
+      const budgetSubcat = budgetCat?.subcategories.find((sc) => sc.name === subcat)
+      if (budgetCat && budgetSubcat) {
+        if (!budgetSubcat.total) budgetSubcat.time += event.duration
+        if (!budgetCat.total) budgetCat.time += event.duration
+      }
+    }
+    await saveWeeklyBudgetConfig(budget)
+
+    // Assign category to id
     const calCatMap = ((await db.metadata.get("calIdCatMap"))?.value || {}) as CalCatMap
     calCatMap[event.calId].cat = cat
     calCatMap[event.calId].subcat = subcat
     await db.metadata.put({ key: "calIdCatMap", value: calCatMap })
-    await db.schedule.where("calId").equals(event.calId).modify({ cat, subcat })
+    await eventSelector.modify({ cat, subcat })
   }
 </script>
 

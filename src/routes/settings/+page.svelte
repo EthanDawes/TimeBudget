@@ -43,6 +43,9 @@
 
   async function saveBudgetClick(startImmediate: boolean) {
     await saveBudgetConfig(JSON.parse(config), startImmediate)
+    if (startImmediate) {
+      // TODO: when saving this week, need to re-iterate all cal events and re-add its time
+    }
     goto(resolve("/"))
   }
 
