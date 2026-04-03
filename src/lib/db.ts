@@ -21,7 +21,7 @@ export interface Budget {
 // Since I'm going to load an entire week's budget into memory at once, it doesn't make sense to split entries by category
 // This also lets me store budgeting history (if reallocs made)
 export interface WeekBudget {
-  id: string
+  id: string // Same as weekId, but a string
   weekId: number // When realized, this is some week identifier. Otherwise, it's -1
   budget: Budget[]
 }
@@ -66,7 +66,7 @@ export const db = new Dexie("TimeBudgetDb", { addons: [dexieCloud] }) as Dexie &
 // Schema declaration:
 db.version(8).stores({
   timeEntries: "@id, category, [category+subcategory], timestampStart", // primary key "id" (for the runtime!)
-  budget: "@id, weekId",
+  budget: "id, weekId",
   schedule: "@id, calId, [day+cat+subcat]", // This mega-multi-index is for easy sorting (so events are properly grouped in calendar)
   metadata: "key",
 })

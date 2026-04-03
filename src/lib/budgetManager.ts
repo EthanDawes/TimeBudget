@@ -21,7 +21,7 @@ export async function saveBudgetConfig(budget: Budget[], startImmediate = false)
   if (existing) {
     await db.budget.update(existing.id, { budget })
   } else {
-    await db.budget.add({ weekId, budget })
+    await db.budget.add({ id: String(weekId), weekId, budget })
   }
   if (startImmediate) saveBudgetConfig(budget, false)
 }
@@ -38,7 +38,7 @@ export async function loadWeeklyBudgetConfig(): Promise<Budget[]> {
     // No weekly budget yet; seed from global config
     const globalBudget = await loadBudgetConfig()
     const newBudget = structuredClone(globalBudget)
-    await db.budget.add({ weekId, budget: newBudget })
+    await db.budget.add({ id: String(weekId), weekId, budget: newBudget })
     return newBudget
   })
 }
@@ -51,7 +51,7 @@ export async function saveWeeklyBudgetConfig(budget: Budget[]): Promise<void> {
     if (existing) {
       await db.budget.update(existing.id, { budget })
     } else {
-      await db.budget.add({ weekId, budget })
+      await db.budget.add({ id: String(weekId), weekId, budget })
     }
   })
 }
