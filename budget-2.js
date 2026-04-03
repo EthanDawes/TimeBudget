@@ -57,7 +57,7 @@ function _Spread(cat, subcat, hours, rollover, distributions) {
       schedule.push({
         day: dayIdx, // index to week
         duration: (hours * weight) / days.length,
-        //calId: 0, // optional
+        calId: "",
         leftovers: rollover,
         cat,
         subcat,

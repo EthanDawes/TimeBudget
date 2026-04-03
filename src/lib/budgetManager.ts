@@ -1,4 +1,4 @@
-import { db, type Budget, type TimeEntry } from "./db"
+import { db, type Budget, type TimeEntry, type Schedule } from "./db"
 import { DAY, getWeekId, getWeekStart, nowMinutes, fmtDuration, MILLISECOND } from "./time"
 import _ from "lodash"
 
@@ -6,6 +6,17 @@ import _ from "lodash"
 export type AccumulatedTime = Record<string, number>
 
 const GLOBAL_CONFIG_WEEK_ID = -1
+
+export function loadSchedule(): Promise<Schedule[]> {
+  return db.schedule.where("calId").equals("").toArray()
+}
+
+export async function saveSchedule(newSchedule: Omit<Schedule, "id">[]): Promise<void> {
+  await db.transaction("rw", db.schedule, async () => {
+    await db.schedule.where("calId").equals("").delete()
+    await db.schedule.bulkAdd(newSchedule)
+  })
+}
 
 // Load global budget configuration from IndexedDB
 export async function loadBudgetConfig(): Promise<Budget[]> {

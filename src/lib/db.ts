@@ -38,11 +38,12 @@ export interface Schedule {
   name?: string // event name
   day: number // index to week
   duration: number // minutes
-  calId?: string
+  calId: string // This should be the gcal id, or if repeating, `recurringEventId`. If not a gcal event, is empty string
   leftovers: Leftovers
-  cat: string
-  subcat: string
-  // TODO: date field so I can delete old events? what about repeating events?
+  // cat and subcat can be undefined when an event has been imported from gcal, but not assigned yet
+  cat?: string
+  subcat?: string
+  // Date field is not needed because schedule recreated every week
 }
 
 export const db = new Dexie("TimeBudgetDb", { addons: [dexieCloud] }) as Dexie & {

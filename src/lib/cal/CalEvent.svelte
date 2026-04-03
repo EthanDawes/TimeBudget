@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { headerHeight, tableHeight, labelWidth } from "$lib/cal/CalGrid.svelte"
-  import type { Snippet } from "svelte"
+  import { headerHeight, labelWidth } from "$lib/cal/CalGrid.svelte"
+  import { getContext, type Snippet } from "svelte"
 
   interface EventProps {
     // 0-24
@@ -16,6 +16,7 @@
 
   let { startHour, duration, dayIndex, color, children, onclick }: EventProps = $props()
 
+  const tableHeight = getContext("tableHeight")
   const cellHeight = `((${tableHeight} - ${headerHeight}) / 24)`
   // Use 100% instead of vw b/c chrome reduces space for scrollbar, firefox doesn't
   const cellWidth = `((100% - ${labelWidth}) / 7)`

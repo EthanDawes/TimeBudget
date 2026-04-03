@@ -1,11 +1,11 @@
 <script module>
-  export const tableHeight = "400vh"
   export const headerHeight = "2rem"
   export const labelWidth = "50px"
 </script>
 
 <script lang="ts">
   import { MILLISECOND, DAY } from "$lib/time"
+  import { setContext, type Snippet } from "svelte"
 
   const startTime = 0
   const endTime = 24
@@ -17,6 +17,7 @@
     // css height
     tableHeight: string
     onHeaderClick?: (weekdayIdx: number) => void
+    children?: Snippet
   }
 
   let {
@@ -24,7 +25,10 @@
     currentWeekStart,
     tableHeight,
     onHeaderClick,
+    children,
   }: CalGridProps = $props()
+
+  setContext("tableHeight", tableHeight)
 
   const hours = $derived(Array.from({ length: endTime - startTime }, (_, i) => startTime + i))
   const formatHour = (h: number) => `${h % 12 || 12} ${h >= 12 ? "pm" : "am"}`
@@ -70,30 +74,34 @@
   }
 </script>
 
-<table class="w-full table-fixed border-collapse" style:height={tableHeight}>
-  <thead class="sticky top-0 z-50 bg-white">
-    <tr style:height={headerHeight}>
-      <th class="w-[50px] max-w-[50px] min-w-[50px] border border-gray-300"></th>
-      {#each days as day, idx}
-        <th
-          class="cursor-pointer truncate border border-gray-300 px-1 hover:bg-gray-100"
-          class:bg-blue-100={filteredWeekday !== null &&
-            (filteredWeekday === idx || (filteredWeekday !== null && idx < 3))}
-          onclick={onHeaderClick?.bind(null, idx)}>{day}</th
-        >
-      {/each}
-    </tr>
-  </thead>
-  <tbody>
-    {#each hours as hour}
-      <tr>
-        <td class="border border-gray-300 text-center align-top text-sm">
-          <span class="inline-block -translate-y-2">{formatHour(hour)}</span>
-        </td>
-        {#each days as _}
-          <td class="border border-gray-300 align-top"></td>
+<div class="relative h-full w-full">
+  <table class="w-full table-fixed border-collapse" style:height={tableHeight}>
+    <thead class="sticky top-0 z-50 bg-white">
+      <tr style:height={headerHeight}>
+        <th class="w-[50px] max-w-[50px] min-w-[50px] border border-gray-300"></th>
+        {#each days as day, idx}
+          <th
+            class="cursor-pointer truncate border border-gray-300 px-1 hover:bg-gray-100"
+            class:bg-blue-100={filteredWeekday !== null &&
+              (filteredWeekday === idx || (filteredWeekday !== null && idx < 3))}
+            onclick={onHeaderClick?.bind(null, idx)}>{day}</th
+          >
         {/each}
       </tr>
-    {/each}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {#each hours as hour}
+        <tr>
+          <td class="border border-gray-300 text-center align-top text-sm">
+            <span class="inline-block -translate-y-2">{formatHour(hour)}</span>
+          </td>
+          {#each days as _}
+            <td class="border border-gray-300 align-top"></td>
+          {/each}
+        </tr>
+      {/each}
+    </tbody>
+  </table>
+
+  {@render children?.()}
+</div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import CalEvent from "./CalEvent.svelte"
+  import CalEvent from "$lib/cal/CalEvent.svelte"
   import { db, type TimeEntry } from "$lib/db"
   import { getWeekStart, MILLISECOND, HOUR, DAY } from "$lib/time"
   import { loadBudgetConfig } from "$lib/budgetManager"
@@ -279,14 +279,12 @@
   </button>
 </div>
 
-<div class="relative h-full w-full">
-  <CalGrid
-    {filteredWeekday}
-    {currentWeekStart}
-    tableHeight="400vh"
-    onHeaderClick={(idx) => filterWeekday(filteredWeekday !== null ? filteredWeekday : idx)}
-  />
-
+<CalGrid
+  {filteredWeekday}
+  {currentWeekStart}
+  tableHeight="400vh"
+  onHeaderClick={(idx) => filterWeekday(filteredWeekday !== null ? filteredWeekday : idx)}
+>
   <!-- Cal events -->
   {#each processedEntries as entry (entry.id)}
     {#if entry.duration}
@@ -340,4 +338,4 @@
       {/if}
     {/if}
   {/each}
-</div>
+</CalGrid>
