@@ -40,9 +40,9 @@ export interface Schedule {
   duration: number // minutes
   calId: string // This should be the gcal id, or if repeating, `recurringEventId`. If not a gcal event, is empty string
   leftovers: Leftovers
-  // cat and subcat can be undefined when an event has been imported from gcal, but not assigned yet
-  cat?: string
-  subcat?: string
+  // cat and subcat can be empty string when an event has been imported from gcal, but not assigned yet
+  cat: string
+  subcat: string
   // Date field is not needed because schedule recreated every week
 }
 
@@ -50,7 +50,7 @@ export type PersistentPartialSchedule = Pick<Schedule, "cat" | "subcat" | "lefto
 export type CalCatMap = Record<string, PersistentPartialSchedule>
 type Metadata =
   | { key: "calIdCatMap"; value: CalCatMap }
-  | { key: "schedule"; value: Schedule[] }
+  | { key: "schedule"; value: Schedule[] } // This is diff from entries in "schedule" table without a "calId" field because if I ever want to reset the budget week-to-week, these are the defaults that should be restored. TODO: implement
   | { key: "enabledCals"; value: string[] }
 
 export const db = new Dexie("TimeBudgetDb", { addons: [dexieCloud] }) as Dexie & {
@@ -64,10 +64,10 @@ export const db = new Dexie("TimeBudgetDb", { addons: [dexieCloud] }) as Dexie &
 }
 
 // Schema declaration:
-db.version(3).stores({
+db.version(5).stores({
   timeEntries: "@id, category, [category+subcategory], timestampStart", // primary key "id" (for the runtime!)
   budget: "@id, &weekId",
-  schedule: "@id, calId",
+  schedule: "@id, calId, [day+cat+subcat]", // This mega-multi-index is for easy sorting (so events are properly grouped in calendar)
   metadata: "key",
 })
 
@@ -86,8 +86,6 @@ db.on("populate", (transaction) => {
 
   // Id cannot auto-generate here. Just need to do this once, then everything else works fine
   transaction.table("budget").add({ id: "bdg-1", weekId: -1, budget: DEFAULT_BUDGET })
-  transaction.table("metadata").add({ key: "calIdCatMap", value: {} })
-  transaction.table("metadata").add({ key: "schedule", value: [] })
 })
 
 db.cloud.configure({

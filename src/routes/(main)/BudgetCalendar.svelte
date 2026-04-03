@@ -7,14 +7,17 @@
   import { getSubcategoryColor } from "$lib/cal/calUtil.svelte"
 
   let events = $state([] as (Schedule & { start: number })[])
-  db.schedule.toArray().then((result) => {
-    const dayOffset = Array.from({ length: 7 }).fill(0) as number[]
-    events = result as any
-    for (const event of events) {
-      event.start = dayOffset[event.day]
-      dayOffset[event.day] += event.duration / HOUR
-    }
-  })
+  db.schedule
+    .orderBy("[day+cat+subcat]")
+    .toArray()
+    .then((result) => {
+      const dayOffset = Array.from({ length: 7 }).fill(0) as number[]
+      events = result as any
+      for (const event of events) {
+        event.start = dayOffset[event.day]
+        dayOffset[event.day] += event.duration / HOUR
+      }
+    })
 </script>
 
 <CalGrid tableHeight="200vh" currentWeekStart={getWeekStart()}>
@@ -23,7 +26,7 @@
       startHour={event.start}
       duration={event.duration / HOUR}
       dayIndex={event.day}
-      color={event.cat ? getSubcategoryColor(event.cat, event.subcat!) : "red"}
+      color={event.cat ? getSubcategoryColor(event.cat, event.subcat) : "red"}
     >
       {event.name || event.subcat}
     </CalEvent>

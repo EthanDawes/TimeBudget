@@ -23,7 +23,7 @@ export async function refreshEvents() {
       - add the new event to the database
  */
   await db.schedule.where("calId").notEqual("").delete()
-  const idCatMapping = (await db.metadata.get("calIdCatMap"))!.value as CalCatMap
+  const idCatMapping = ((await db.metadata.get("calIdCatMap"))?.value || {}) as CalCatMap
   const usedMappings: CalCatMap = {}
   const newEvents: Omit<Schedule, "id">[] = []
   for (const event of await getAllEvents()) {
@@ -32,6 +32,8 @@ export async function refreshEvents() {
     let mapping = idCatMapping[eventId]
     if (!mapping) {
       mapping = {
+        cat: "",
+        subcat: "",
         leftovers: Leftovers.FREE,
       }
     }
