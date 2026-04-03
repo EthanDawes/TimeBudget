@@ -264,7 +264,7 @@
 </svelte:head>
 
 <div class="flex max-h-dvh w-full bg-gray-50">
-  <div class="h-full w-[90%]">
+  <div class="max-h-full w-[90%] overflow-x-clip overflow-y-auto">
     <BudgetCalendar />
   </div>
   <div class="overflow-x-clip overflow-y-auto">
