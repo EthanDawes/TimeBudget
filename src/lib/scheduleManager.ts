@@ -27,6 +27,7 @@ export async function refreshEvents() {
   const usedMappings: CalCatMap = {}
   const newEvents: Omit<Schedule, "id">[] = []
   for (const event of await getAllEvents()) {
+    if (event.transparency === "transparent") continue
     const eventId: string = event.recurringEventId ?? event.id
     let mapping = idCatMapping[eventId]
     if (!mapping) {
@@ -39,9 +40,10 @@ export async function refreshEvents() {
     const end = new Date(event.end.dateTime)
     newEvents.push({
       ...mapping,
-      day: new Date().getDay() - 1, // -1 b/c my weeks start on Monday
+      day: start.getDay() - 1, // -1 b/c my weeks start on Monday
       calId: eventId,
       duration: (end.getTime() - start.getTime()) * MILLISECOND,
+      name: event.summary,
     })
   }
   await db.metadata.put({ key: "calIdCatMap", value: usedMappings })

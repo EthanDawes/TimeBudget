@@ -23,7 +23,7 @@
 </script>
 
 <div
-  class="absolute truncate"
+  class="absolute truncate border"
   class:cursor-pointer={onclick}
   class:hover:opacity-80={onclick}
   style:background-color={color}
