@@ -25,6 +25,8 @@
   import type { TimeEntry } from "$lib/db"
   import { ceilTo } from "$lib"
 
+  let { eventChannel }: { eventChannel: EventTarget } = $props()
+
   let budget = $state<Budget[]>([])
   let accumulatedTime = $state({} as AccumulatedTime)
   let categoryOverages = $state({} as Record<string, number>)
@@ -57,6 +59,11 @@
     activeTimers().then((res) => (currentTasks = res))
   }
   setState()
+
+  eventChannel.addEventListener("budgetChanged", () => {
+    budget = []
+    setState()
+  })
 
   async function switchTask(category: string, subcategory: string) {
     await switchTaskConcurrent(category, subcategory)

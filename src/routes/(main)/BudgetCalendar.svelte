@@ -12,6 +12,8 @@
   } from "$lib/budgetManager.js"
   import { liveQuery } from "dexie"
 
+  let { eventChannel }: { eventChannel: EventTarget } = $props()
+
   let budget = $state([] as Budget[])
   let activeEvent = $state(null as (Schedule & { start: number }) | null)
   let selectEl = $state(null as HTMLSelectElement | null)
@@ -83,6 +85,7 @@
       }
     }
     await saveWeeklyBudgetConfig(budget)
+    eventChannel.dispatchEvent(new CustomEvent("budgetChanged"))
 
     // Assign category to id
     const calCatMap = ((await db.metadata.get("calIdCatMap"))?.value || {}) as CalCatMap
