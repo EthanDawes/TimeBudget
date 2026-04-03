@@ -64,9 +64,9 @@ export const db = new Dexie("TimeBudgetDb", { addons: [dexieCloud] }) as Dexie &
 }
 
 // Schema declaration:
-db.version(5).stores({
+db.version(8).stores({
   timeEntries: "@id, category, [category+subcategory], timestampStart", // primary key "id" (for the runtime!)
-  budget: "@id, &weekId",
+  budget: "@id, weekId",
   schedule: "@id, calId, [day+cat+subcat]", // This mega-multi-index is for easy sorting (so events are properly grouped in calendar)
   metadata: "key",
 })

@@ -16,10 +16,9 @@
   let googleLoading = $state(false)
   let eventsRefreshing = $state(false)
 
-  let dbLoggedIn = $state(false)
-  db.cloud.currentUser.subscribe((user) => {
-    dbLoggedIn = user.userId !== "unauthorized"
-  })
+  let _curUser = db.cloud.currentUser
+  let curUser = $derived($_curUser)
+  let dbLoggedIn = $derived(curUser.userId !== "unauthorized")
 
   onMount(async () => {
     config = JSON.stringify(await loadBudgetConfig(), null, 2)
@@ -68,13 +67,12 @@
   <div class="mx-auto max-w-4xl">
     <!-- Site -->
     <h2>Sync</h2>
-    <p>
-      Sync across devices <button
-        class="border"
-        onclick={() => (dbLoggedIn ? db.cloud.logout() : db.cloud.login())}
-        >{dbLoggedIn ? "Logout" : "Login"}</button
-      >
-    </p>
+    {#if dbLoggedIn}
+      <p>Signed in as {curUser.email}</p>
+    {/if}
+    <button class="border" onclick={() => (dbLoggedIn ? db.cloud.logout() : db.cloud.login())}>
+      {dbLoggedIn ? "Logout" : "Login"}
+    </button>
 
     <!--  Google Calendar  -->
     <h2>Google Calendar</h2>

@@ -11,7 +11,7 @@ const GLOBAL_CONFIG_WEEK_ID = -1
 export async function loadBudgetConfig(): Promise<Budget[]> {
   const record = await db.budget.where("weekId").equals(GLOBAL_CONFIG_WEEK_ID).first()
   if (record) return record.budget
-  throw new Error("Tried loading budget before db initialized")
+  return []
 }
 
 // Save global budget configuration to IndexedDB
