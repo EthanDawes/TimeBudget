@@ -11,7 +11,7 @@
     dayIndex: number
     color: string
     children?: Snippet<[]>
-    onclick?: () => void
+    onclick?: (e: MouseEvent) => void
   }
 
   let { startHour, duration, dayIndex, color, children, onclick }: EventProps = $props()
