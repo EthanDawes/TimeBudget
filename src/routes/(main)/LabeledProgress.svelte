@@ -51,14 +51,19 @@
   })
 
   let greenPct = $derived.by(() => {
-    const overage = 10000 / singlePct
-    if (!isMultiBar || totalBarUnits === 0) return overage < 100 ? overage : singlePct
+    if (!isMultiBar || totalBarUnits === 0) {
+      if (budget === 0) return 0
+      const pct = 10000 / singlePct
+      return pct < 100 ? pct : singlePct
+    }
     return (Math.min(spent, budget) / totalBarUnits) * 100
   })
 
   let yellowPct = $derived.by(() => {
-    const overage = 100 - 10000 / singlePct
-    if (!isMultiBar || totalBarUnits === 0) return Math.max(0, overage)
+    if (!isMultiBar || totalBarUnits === 0) {
+      if (budget === 0) return spent > 0 ? 100 : 0
+      return Math.max(0, 100 - 10000 / singlePct)
+    }
     return (yellowAmount / totalBarUnits) * 100
   })
 
