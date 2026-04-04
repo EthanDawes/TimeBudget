@@ -17,6 +17,8 @@
     categorySpilloverForThis?: number
     remainingCategorySpillover?: number
     remainingUnallocated?: number
+    overlayStart?: number
+    overlayLength?: number
   }
 
   let {
@@ -29,6 +31,8 @@
     categorySpilloverForThis = 0,
     remainingCategorySpillover = 0,
     remainingUnallocated = 0,
+    overlayStart,
+    overlayLength,
   }: ProgressProps = $props()
 
   let isMultiBar = $derived(totalCategorySpillover !== undefined)
@@ -76,6 +80,22 @@
   let labelRemaining = $derived(
     isMultiBar && spent > budget ? totalBarUnits - spent : budget - spent,
   )
+
+  // Overlay: convert start/length from unit-space to percentage of totalBarUnits
+  let overlayLeftPct = $derived(
+    overlayStart !== undefined && totalBarUnits > 0
+      ? Math.min(100, Math.max(0, (overlayStart / totalBarUnits) * 100))
+      : 0,
+  )
+  let overlayWidthPct = $derived.by(() => {
+    if (overlayLength === undefined || totalBarUnits === 0) return 0
+    const raw = (overlayLength / totalBarUnits) * 100
+    // Clamp so overlay doesn't exceed bar bounds
+    return Math.min(raw, 100 - overlayLeftPct)
+  })
+  let showOverlay = $derived(
+    overlayStart !== undefined && overlayLength !== undefined && overlayWidthPct > 0,
+  )
 </script>
 
 <div class={"relative mb-1.25 w-full " + style} {onclick} role={onclick ? "button" : undefined}>
@@ -95,6 +115,14 @@
       ></div>
     </div>
   </div>
+
+  {#if showOverlay}
+    <div
+      class="pointer-events-none absolute inset-y-0 rounded-sm bg-black/30 ring-2 ring-black/60 transition-all duration-300 ring-inset"
+      style="left: {overlayLeftPct}%; width: {overlayWidthPct}%"
+    ></div>
+  {/if}
+
   <div
     class="pointer-events-none absolute inset-0 flex items-center justify-between px-3 font-medium text-gray-800"
   >
