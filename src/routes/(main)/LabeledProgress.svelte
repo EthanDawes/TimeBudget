@@ -18,7 +18,6 @@
     remainingCategorySpillover?: number
     remainingUnallocated?: number
     overlayStart?: number
-    overlayLength?: number
   }
 
   let {
@@ -32,7 +31,6 @@
     remainingCategorySpillover = 0,
     remainingUnallocated = 0,
     overlayStart,
-    overlayLength,
   }: ProgressProps = $props()
 
   let isMultiBar = $derived(totalCategorySpillover !== undefined)
@@ -87,15 +85,6 @@
       ? Math.min(100, Math.max(0, (overlayStart / totalBarUnits) * 100))
       : 0,
   )
-  let overlayWidthPct = $derived.by(() => {
-    if (overlayLength === undefined || totalBarUnits === 0) return 0
-    const raw = (overlayLength / totalBarUnits) * 100
-    // Clamp so overlay doesn't exceed bar bounds
-    return Math.min(raw, 100 - overlayLeftPct)
-  })
-  let showOverlay = $derived(
-    overlayStart !== undefined && overlayLength !== undefined && overlayWidthPct > 0,
-  )
 </script>
 
 <div class={"relative mb-1.25 w-full " + style} {onclick} role={onclick ? "button" : undefined}>
@@ -116,10 +105,10 @@
     </div>
   </div>
 
-  {#if showOverlay}
+  {#if overlayStart !== undefined}
     <div
-      class="pointer-events-none absolute inset-y-0 rounded-sm bg-black/30 ring-2 ring-black/60 transition-all duration-300 ring-inset"
-      style="left: {overlayLeftPct}%; width: {overlayWidthPct}%"
+      class="pointer-events-none absolute inset-y-0 w-0.5 bg-black transition-all duration-300"
+      style="left: {overlayLeftPct}%;"
     ></div>
   {/if}
 
