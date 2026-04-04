@@ -18,10 +18,11 @@
     type SplitEntry,
   } from "$lib/budgetManager"
   import { db, exportSpentTime, type Budget } from "$lib/db"
+  import { liveQuery } from "dexie"
   import LabeledProgress from "./LabeledProgress.svelte"
   import SplitTimeModal from "./SplitTimeModal.svelte"
   import { resolve } from "$app/paths"
-  import { fmtDuration, MINUTE, nowMinutes, parseTimeString } from "$lib/time"
+  import { fmtDuration, MILLISECOND, MINUTE, nowMinutes, parseTimeString } from "$lib/time"
   import { ceilTo } from "$lib"
 
   let { eventChannel }: { eventChannel: EventTarget } = $props()
@@ -52,22 +53,56 @@
       categoryOverages = calculateCategoryOverage(budget, accumulatedTime)
     })
     unallocatedTime = getUnallocatedTime(budget)
+  }
 
-    db.schedule.toArray().then((schedules) => {
+  $effect(() => {
+    const subscription = liveQuery(async () => {
+      const todayDayIndex = new Date().getDay() - 1 // Monday=0, Sunday=-1 (matches Schedule.day)
+      const todayStart = (() => {
+        const d = new Date()
+        d.setHours(0, 0, 0, 0)
+        return d.getTime() * MILLISECOND
+      })()
+
+      const [schedules, todayEntries] = await Promise.all([
+        db.schedule.toArray(),
+        db.timeEntries.where("timestampStart").aboveOrEqual(todayStart).toArray(),
+      ])
+
+      const todaySpent: Record<string, number> = {}
+      for (const entry of todayEntries) {
+        if (entry.category && entry.subcategory) {
+          const key = entry.category + entry.subcategory
+          todaySpent[key] = (todaySpent[key] ?? 0) + (entry.duration ?? 0)
+        }
+      }
+
       const times: Record<string, number> = {}
       let unallocated = 0
       for (const s of schedules) {
+        if (s.day < todayDayIndex) continue // past day, skip
+
         if (s.cat && s.subcat) {
           const key = s.cat + s.subcat
-          times[key] = (times[key] ?? 0) + s.duration
+          let contribution = s.duration
+          if (s.day === todayDayIndex) {
+            contribution = Math.max(0, s.duration - (todaySpent[key] ?? 0))
+          }
+          times[key] = (times[key] ?? 0) + contribution
         } else {
+          // TODO: there seems to be a bug where unallocated time is negative from scheduled time, shouldn't be
           unallocated += s.duration
         }
       }
-      scheduledTime = times
-      unallocatedScheduledTime = unallocated
+      return { times, unallocated }
+    }).subscribe({
+      next: ({ times, unallocated }) => {
+        scheduledTime = times
+        unallocatedScheduledTime = unallocated
+      },
     })
-  }
+    return () => subscription.unsubscribe()
+  })
   setState()
 
   eventChannel.addEventListener("budgetChanged", () => {
