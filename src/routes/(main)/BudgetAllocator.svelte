@@ -17,7 +17,7 @@
     type AccumulatedTime,
     type SplitEntry,
   } from "$lib/budgetManager"
-  import { exportSpentTime, type Budget } from "$lib/db"
+  import { db, exportSpentTime, type Budget } from "$lib/db"
   import LabeledProgress from "./LabeledProgress.svelte"
   import SplitTimeModal from "./SplitTimeModal.svelte"
   import { resolve } from "$app/paths"
@@ -30,6 +30,8 @@
   let accumulatedTime = $state({} as AccumulatedTime)
   let categoryOverages = $state({} as Record<string, number>)
   let unallocatedTime = $state(0)
+  let scheduledTime = $state({} as Record<string, number>)
+  let unallocatedScheduledTime = $state(0)
   let showReallocationMode = $state(false)
   let sourceSelection = $state<{ category: string | null; subcategory?: string } | null>(null)
   let targetSelection = $state<{ category: string | null; subcategory?: string } | null>(null)
@@ -50,6 +52,21 @@
       categoryOverages = calculateCategoryOverage(budget, accumulatedTime)
     })
     unallocatedTime = getUnallocatedTime(budget)
+
+    db.schedule.toArray().then((schedules) => {
+      const times: Record<string, number> = {}
+      let unallocated = 0
+      for (const s of schedules) {
+        if (s.cat && s.subcat) {
+          const key = s.cat + s.subcat
+          times[key] = (times[key] ?? 0) + s.duration
+        } else {
+          unallocated += s.duration
+        }
+      }
+      scheduledTime = times
+      unallocatedScheduledTime = unallocated
+    })
   }
   setState()
 
@@ -380,6 +397,8 @@
           totalSubcategoryOverage > 0
             ? (subcategoryOverage / totalSubcategoryOverage) * poolAllocated
             : 0}
+        {@const subcategorySpent = accumulatedTime[categoryName + subcategoryName] ?? 0}
+        {@const subcategoryScheduled = scheduledTime[categoryName + subcategoryName] ?? 0}
 
         <div
           class="{isSourceSubcategory || isTargetSubcategory
@@ -387,7 +406,8 @@
             : ''} {isDisabled ? 'opacity-50 grayscale' : ''}"
         >
           <LabeledProgress
-            spent={accumulatedTime[categoryName + subcategoryName] ?? 0}
+            spent={subcategorySpent + subcategoryScheduled}
+            overlayStart={subcategoryScheduled > 0 ? subcategorySpent : undefined}
             budget={subcategoryBudget}
             {totalCategorySpillover}
             {categorySpilloverForThis}
@@ -419,9 +439,11 @@
     {@const isUnallocatedDisabled =
       showReallocationMode && !sourceSelection && unallocatedAvailable <= 0}
 
+    {@const unallocatedSpent = calculateOverage(budget, accumulatedTime)}
     <div class={isSourceUnallocated || isTargetUnallocated ? "rounded border bg-white p-2" : ""}>
       <LabeledProgress
-        spent={calculateOverage(budget, accumulatedTime)}
+        spent={unallocatedSpent + unallocatedScheduledTime}
+        overlayStart={unallocatedScheduledTime > 0 ? unallocatedSpent : undefined}
         budget={unallocatedTime}
         style={showReallocationMode
           ? !sourceSelection && unallocatedAvailable <= 0
