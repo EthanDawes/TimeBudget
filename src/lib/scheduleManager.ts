@@ -42,7 +42,7 @@ export async function refreshEvents() {
     const end = new Date(event.end.dateTime)
     newEvents.push({
       ...mapping,
-      day: start.getDay() - 1, // -1 b/c my weeks start on Monday
+      day: (start.getDay() + 6) % 7, // -1 b/c my weeks start on Monday
       calId: eventId,
       duration: (end.getTime() - start.getTime()) * MILLISECOND,
       name: event.summary,
