@@ -62,6 +62,7 @@ export const db = new Dexie("TimeBudgetDb", { addons: [dexieCloud] }) as Dexie &
   schedule: DexieCloudTable<Schedule, "id">
   metadata: DexieCloudTable<Metadata, "key">
 }
+window.db = db
 
 // Schema declaration:
 db.version(10).stores({
@@ -69,23 +70,6 @@ db.version(10).stores({
   budget: "id, &weekId",
   schedule: "@id, calId, day, [day+cat+subcat]", // This mega-multi-index is for easy sorting (so events are properly grouped in calendar)
   metadata: "key",
-})
-
-db.on("populate", (transaction) => {
-  const DEFAULT_BUDGET: Budget[] = [
-    {
-      name: "category",
-      time: 600,
-      total: false,
-      subcategories: [
-        { name: "a", time: 100, total: false },
-        { name: "b", time: 400, total: false },
-      ],
-    },
-  ]
-
-  // Id cannot auto-generate here. Just need to do this once, then everything else works fine
-  transaction.table("budget").add({ id: "bdg-1", weekId: -1, budget: DEFAULT_BUDGET })
 })
 
 db.cloud.configure({
