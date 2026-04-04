@@ -96,6 +96,7 @@
       categorySpilloverForThis={categorySpilloverForA}
       {remainingCategorySpillover}
       {remainingUnallocated}
+      overlayStart={3}
     >
       a
     </LabeledProgress>
@@ -130,5 +131,5 @@
     </label>
   </div>
 
-  <LabeledProgress spent={spentC} budget={budgetC}>c</LabeledProgress>
+  <LabeledProgress spent={spentC} budget={budgetC} overlayStart={3}>c</LabeledProgress>
 </div>

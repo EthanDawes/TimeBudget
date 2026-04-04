@@ -79,10 +79,12 @@
     isMultiBar && spent > budget ? totalBarUnits - spent : budget - spent,
   )
 
+  let overlayTotalUnits = $derived(isMultiBar ? totalBarUnits : Math.max(budget, spent))
+
   // Overlay: convert start/length from unit-space to percentage of totalBarUnits
   let overlayLeftPct = $derived(
-    overlayStart !== undefined && totalBarUnits > 0
-      ? Math.min(100, Math.max(0, (overlayStart / totalBarUnits) * 100))
+    overlayStart !== undefined && overlayTotalUnits > 0
+      ? Math.min(100, Math.max(0, (overlayStart / overlayTotalUnits) * 100))
       : 0,
   )
 </script>
