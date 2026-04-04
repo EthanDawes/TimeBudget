@@ -12,7 +12,7 @@
   import LabeledProgress from "./LabeledProgress.svelte"
   import SplitTimeModal from "./SplitTimeModal.svelte"
   import { resolve } from "$app/paths"
-  import { fmtDuration, MILLISECOND, nowMinutes } from "$lib/time"
+  import { fmtDuration, MILLISECOND, DAY, nowMinutes } from "$lib/time"
   import { liveQuery } from "dexie"
   import { db } from "$lib/db"
 
@@ -54,6 +54,9 @@
       ),
   )
   let spent = $derived($_spent || {})
+
+  let unallocatedBudget = $derived(DAY - Object.values(budget).reduce((a, b) => a + b, 0))
+  let unallocatedSpent = $derived(Object.values(spent).reduce((a, b) => a + b, 0))
 
   // Clean up any tasks that have been running for more than 24 hours
   cleanupLongRunningTasks() // ok to ignore async return
@@ -150,45 +153,11 @@
     </div>
   {/each}
 
-  <!-- {#snippet unallocatedSection()}
-    {@const unallocatedAvailable = getAvailableTime(budget, accumulatedTime, null, null)}
-    {@const isSourceUnallocated = sourceSelection?.category === null}
-    {@const isTargetUnallocated = targetSelection?.category === null}
-    {@const isUnallocatedDisabled =
-      showReallocationMode && !sourceSelection && unallocatedAvailable <= 0}
-
-    <div class={isSourceUnallocated || isTargetUnallocated ? "rounded border bg-white p-2" : ""}>
-      <LabeledProgress
-        spent={calculateOverage(budget, accumulatedTime)}
-        budget={unallocatedTime}
-        style={showReallocationMode
-          ? !sourceSelection && unallocatedAvailable <= 0
-            ? "cursor-not-allowed opacity-50 grayscale"
-            : "cursor-pointer"
-          : ""}
-        onclick={showReallocationMode && !isUnallocatedDisabled
-          ? handleUnallocatedClick
-          : undefined}
-      >
-        <h2
-          class="font-bold {isSourceUnallocated
-            ? 'text-blue-600'
-            : isTargetUnallocated
-              ? 'text-green-600'
-              : ''}"
-        >
-          {#if isSourceUnallocated}
-            🔵
-          {:else if isTargetUnallocated}
-            🟢
-          {/if}
-          Unallocated time
-        </h2>
-      </LabeledProgress>
-    </div>
-  {/snippet}
-
-  {@render unallocatedSection()} -->
+  <div>
+    <LabeledProgress spent={unallocatedSpent} budget={unallocatedBudget}>
+      <h2 class="font-bold">Unallocated time</h2>
+    </LabeledProgress>
+  </div>
 </div>
 
 <div class="text-center">
