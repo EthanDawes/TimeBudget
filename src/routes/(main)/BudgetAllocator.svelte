@@ -16,7 +16,14 @@
   import { liveQuery } from "dexie"
   import LabeledProgress from "./LabeledProgress.svelte"
   import { resolve } from "$app/paths"
-  import { daysOfWeek, MILLISECOND, MINUTE, nowMinutes, parseTimeString } from "$lib/time"
+  import {
+    daysOfWeek,
+    MILLISECOND,
+    MINUTE,
+    nowMinutes,
+    parseTimeString,
+    fmtDuration,
+  } from "$lib/time"
   import { ceilTo } from "$lib"
   import { onDestroy } from "svelte"
 
@@ -425,13 +432,19 @@
           : undefined}
       >
         <h2
-          class="text-xl font-bold {isSourceCategory
+          class="flex justify-between text-xl font-bold {isSourceCategory
             ? 'text-blue-600'
             : isTargetCategory
               ? 'text-green-600'
               : ''}"
         >
-          {categoryName}
+          <span>{categoryName}</span>
+          <span>
+            {fmtDuration(
+              category.time -
+                Object.values(category.subcategories).reduce((sum, budget) => sum + budget.time, 0),
+            )}
+          </span>
         </h2>
       </div>
 
