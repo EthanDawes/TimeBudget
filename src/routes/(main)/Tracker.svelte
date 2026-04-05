@@ -158,7 +158,7 @@
           <LabeledProgress
             spent={effectiveSpent[sub.name] ?? 0}
             budget={budget[sub.name] ?? 0}
-            style="cursor-pointer"
+            style={"cursor-pointer " + (budget[sub.name] ? "" : "opacity-50")}
             onclick={() => handleCategoryClick(cat.name, sub.name)}
           >
             {@const isRunning = currentTasks.some(
