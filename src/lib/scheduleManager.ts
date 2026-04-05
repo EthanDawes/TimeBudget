@@ -1,6 +1,6 @@
 import { db, Leftovers, type CalCatMap, type Schedule } from "./db"
 import { getAllEvents } from "./cal/calController"
-import { MILLISECOND } from "./time"
+import { MILLISECOND, shiftWeekday } from "./time"
 
 export function loadSchedule(): Promise<Schedule[]> {
   return db.schedule.where("calId").equals("").toArray()
@@ -42,7 +42,7 @@ export async function refreshEvents() {
     const end = new Date(event.end.dateTime)
     newEvents.push({
       ...mapping,
-      day: (start.getDay() + 6) % 7, // -1 b/c my weeks start on Monday
+      day: shiftWeekday(start.getDay()),
       calId: eventId,
       duration: (end.getTime() - start.getTime()) * MILLISECOND,
       name: event.summary,

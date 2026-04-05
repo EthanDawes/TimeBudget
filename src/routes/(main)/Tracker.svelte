@@ -12,11 +12,11 @@
   import LabeledProgress from "./LabeledProgress.svelte"
   import SplitTimeModal from "./SplitTimeModal.svelte"
   import { resolve } from "$app/paths"
-  import { fmtDuration, MILLISECOND, DAY, nowMinutes } from "$lib/time"
+  import { fmtDuration, MILLISECOND, DAY, nowMinutes, shiftWeekday } from "$lib/time"
   import { liveQuery } from "dexie"
   import { db } from "$lib/db"
 
-  const todayDay = new Date().getDay() - 1 // Since my weeks start on Monday
+  const todayDay = shiftWeekday(new Date().getDay())
   const todayStart = new Date().setHours(0, 0, 0, 0) * MILLISECOND
 
   let _currentTasks = liveQuery(() => activeTimers())

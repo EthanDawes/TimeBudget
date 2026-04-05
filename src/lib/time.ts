@@ -36,6 +36,9 @@ export function getWeekId(): number {
 
 export const nowMinutes = () => Date.now() * MILLISECOND
 
+// Since my weeks start on Monday. +6 instead of -1 b/c mod doesn't support wrap-arround
+export const shiftWeekday = (weekday: number) => (weekday + 6) % 7
+
 // Parse time string in format like "1h 30m", "45m", "2h"
 export function parseTimeString(timeStr: string): number {
   const trimmed = timeStr.trim().toLowerCase()
