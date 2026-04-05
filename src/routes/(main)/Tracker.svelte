@@ -57,7 +57,9 @@
   let spent = $derived($_spent || {})
 
   let now = $state(nowMinutes())
-  const ticker = setInterval(() => { now = nowMinutes() }, 30_000)
+  const ticker = setInterval(() => {
+    now = nowMinutes()
+  }, 30_000)
   onDestroy(() => clearInterval(ticker))
 
   let effectiveSpent = $derived.by(() => {
@@ -70,7 +72,12 @@
   })
 
   let unallocatedBudget = $derived(DAY - Object.values(budget).reduce((a, b) => a + b, 0))
-  let unallocatedSpent = $derived(Object.values(effectiveSpent).reduce((a, b) => a + b, 0))
+  let unallocatedSpent = $derived(
+    Object.entries(effectiveSpent).reduce(
+      (acc, [subcat, val]) => acc + Math.max(0, val - budget[subcat]),
+      0,
+    ),
+  )
 
   // Clean up any tasks that have been running for more than 24 hours
   cleanupLongRunningTasks() // ok to ignore async return
