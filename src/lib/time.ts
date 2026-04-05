@@ -4,6 +4,16 @@ export const MILLISECOND = SECOND / 1000
 export const HOUR = 60 * MINUTE
 export const DAY = 24 * HOUR
 
+export const daysOfWeek = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+]
+
 export function fmtDuration(minutes: number) {
   minutes = Math.round(minutes) // Round now instead of later to avoid weird "4h 60m"
   const sign = minutes < 0 ? "-" : ""

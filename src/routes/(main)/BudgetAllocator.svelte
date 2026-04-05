@@ -4,29 +4,23 @@
     activeTimers,
     calculateCategoryOverage,
     calculateOverage,
-    finishTaskById,
-    switchTaskConcurrent,
     getUnallocatedTime,
     loadWeeklyBudgetConfig,
     saveWeeklyBudgetConfig,
     loadWeeklyData,
     getAvailableTime,
     reallocateTime,
-    cleanupLongRunningTasks,
-    splitTime,
     type AccumulatedTime,
-    type SplitEntry,
   } from "$lib/budgetManager"
   import { db, exportSpentTime, type Budget } from "$lib/db"
   import { liveQuery } from "dexie"
   import LabeledProgress from "./LabeledProgress.svelte"
-  import SplitTimeModal from "./SplitTimeModal.svelte"
   import { resolve } from "$app/paths"
-  import { fmtDuration, MILLISECOND, MINUTE, nowMinutes, parseTimeString } from "$lib/time"
+  import { daysOfWeek, MILLISECOND, MINUTE, nowMinutes, parseTimeString } from "$lib/time"
   import { ceilTo } from "$lib"
   import { onDestroy } from "svelte"
 
-  let { eventChannel }: { eventChannel: EventTarget } = $props()
+  let { eventChannel, selectedDay }: { eventChannel: EventTarget; selectedDay: number } = $props()
 
   let budget = $state<Budget[]>([])
   let accumulatedTime = $state({} as AccumulatedTime)
@@ -34,7 +28,9 @@
   let _activeTasks = liveQuery(() => activeTimers())
   let activeTasks = $derived($_activeTasks || [])
   let now = $state(nowMinutes())
-  const ticker = setInterval(() => { now = nowMinutes() }, 30_000)
+  const ticker = setInterval(() => {
+    now = nowMinutes()
+  }, 30_000)
   onDestroy(() => clearInterval(ticker))
 
   let effectiveAccumulatedTime = $derived.by(() => {
@@ -47,7 +43,9 @@
     }
     return result
   })
-  let effectiveCategoryOverages = $derived(calculateCategoryOverage(budget, effectiveAccumulatedTime))
+  let effectiveCategoryOverages = $derived(
+    calculateCategoryOverage(budget, effectiveAccumulatedTime),
+  )
   let categoryOverages = $state({} as Record<string, number>)
   let unallocatedTime = $state(0)
   let scheduledTime = $state({} as Record<string, number>)
@@ -146,7 +144,12 @@
     }
 
     // Reallocation mode behavior
-    const availableTime = getAvailableTime(budget, effectiveAccumulatedTime, category, subcategory || null)
+    const availableTime = getAvailableTime(
+      budget,
+      effectiveAccumulatedTime,
+      category,
+      subcategory || null,
+    )
 
     const selection = { category, subcategory }
 
@@ -365,6 +368,7 @@
 {#if !showReallocationMode}
   <div class="pb-1.5">
     <div class="flex justify-around">
+      Editing {daysOfWeek[selectedDay]}
       <button class="border" onclick={handleReallocationModeToggle}>Rebudget</button>
     </div>
   </div>
@@ -373,7 +377,12 @@
 <div class="flex flex-col gap-5 {showReallocationMode ? 'mt-32' : ''}">
   {#each showReallocationMode ? previewBudget : budget as category}
     {@const categoryName = category.name}
-    {@const categoryAvailable = getAvailableTime(budget, effectiveAccumulatedTime, categoryName, null)}
+    {@const categoryAvailable = getAvailableTime(
+      budget,
+      effectiveAccumulatedTime,
+      categoryName,
+      null,
+    )}
     {@const isSourceCategory =
       sourceSelection?.category === categoryName && !sourceSelection.subcategory}
     {@const isTargetCategory =

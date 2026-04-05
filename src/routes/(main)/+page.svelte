@@ -6,6 +6,7 @@
   const eventChannel = new EventTarget()
 
   let width = $state(window.innerWidth)
+  let selectedDay = $state(0)
 
   window.addEventListener("resize", () => {
     width = window.innerWidth
@@ -21,10 +22,10 @@
 {:else}
   <div class="flex max-h-dvh w-full bg-gray-50">
     <div class="max-h-full w-[90%] overflow-x-clip overflow-y-auto">
-      <BudgetCalendar {eventChannel} />
+      <BudgetCalendar {eventChannel} bind:selectedDay />
     </div>
     <div class="overflow-x-clip overflow-y-auto">
-      <BudgetAllocator {eventChannel} />
+      <BudgetAllocator {eventChannel} {selectedDay} />
     </div>
   </div>
 {/if}

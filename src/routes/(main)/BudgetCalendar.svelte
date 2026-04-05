@@ -12,7 +12,10 @@
   } from "$lib/budgetManager.js"
   import { liveQuery } from "dexie"
 
-  let { eventChannel }: { eventChannel: EventTarget } = $props()
+  let {
+    eventChannel,
+    selectedDay = $bindable(),
+  }: { eventChannel: EventTarget; selectedDay: number } = $props()
 
   let budget = $state([] as Budget[])
   let activeEvent = $state(null as (Schedule & { start: number }) | null)
@@ -96,7 +99,11 @@
   }
 </script>
 
-<CalGrid tableHeight="200vh" currentWeekStart={getWeekStart()}>
+<CalGrid
+  tableHeight="200vh"
+  currentWeekStart={getWeekStart()}
+  onHeaderClick={(weekdayIdx) => (selectedDay = weekdayIdx)}
+>
   {#each events as event}
     <CalEvent
       startHour={event.start}
