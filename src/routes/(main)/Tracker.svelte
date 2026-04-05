@@ -15,6 +15,7 @@
   import { fmtDuration, MILLISECOND, DAY, nowMinutes, shiftWeekday } from "$lib/time"
   import { liveQuery } from "dexie"
   import { db } from "$lib/db"
+  import { onDestroy } from "svelte"
 
   const todayDay = shiftWeekday(new Date().getDay())
   const todayStart = new Date().setHours(0, 0, 0, 0) * MILLISECOND
@@ -55,8 +56,21 @@
   )
   let spent = $derived($_spent || {})
 
+  let now = $state(nowMinutes())
+  const ticker = setInterval(() => { now = nowMinutes() }, 30_000)
+  onDestroy(() => clearInterval(ticker))
+
+  let effectiveSpent = $derived.by(() => {
+    const result = { ...spent }
+    for (const task of currentTasks) {
+      const elapsed = Math.max(0, now - task.timestampStart)
+      result[task.subcategory] = (result[task.subcategory] ?? 0) + elapsed
+    }
+    return result
+  })
+
   let unallocatedBudget = $derived(DAY - Object.values(budget).reduce((a, b) => a + b, 0))
-  let unallocatedSpent = $derived(Object.values(spent).reduce((a, b) => a + b, 0))
+  let unallocatedSpent = $derived(Object.values(effectiveSpent).reduce((a, b) => a + b, 0))
 
   // Clean up any tasks that have been running for more than 24 hours
   cleanupLongRunningTasks() // ok to ignore async return
@@ -114,7 +128,7 @@
         >
           ▶️ {task.subcategory}
         </button>
-        {fmtDuration(nowMinutes() - task.timestampStart)}
+        {fmtDuration(now - task.timestampStart)}
       </p>
     {/each}
     <div class="flex justify-around">
@@ -135,7 +149,7 @@
       {#each cat.subcategories as sub}
         <div>
           <LabeledProgress
-            spent={spent[sub.name] ?? 0}
+            spent={effectiveSpent[sub.name] ?? 0}
             budget={budget[sub.name] ?? 0}
             style="cursor-pointer"
             onclick={() => handleCategoryClick(cat.name, sub.name)}
