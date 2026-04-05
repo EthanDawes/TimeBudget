@@ -133,21 +133,6 @@
     splitEntries = [...splitEntries]
   }
 
-  function getCategoryOptions() {
-    const options = []
-
-    for (const category of budget) {
-      for (const sub of category.subcategories) {
-        options.push({
-          value: `${category.name}|${sub.name}`,
-          label: `${category.name} → ${sub.name}`,
-        })
-      }
-    }
-
-    return options
-  }
-
   function updateCategory(index: number, value: string) {
     const [category, subcategory] = value.split("|")
     splitEntries[index].category = category
@@ -251,8 +236,12 @@
               onchange={(e) => updateCategory(index, (e.target as HTMLSelectElement).value)}
               class="min-w-0 flex-1 rounded border px-1 py-1 text-sm sm:px-2"
             >
-              {#each getCategoryOptions() as option}
-                <option value={option.value}>{option.label}</option>
+              {#each budget as cat}
+                <optgroup label={cat.name}>
+                  {#each cat.subcategories as sub}
+                    <option value="{cat.name}|{sub.name}">{sub.name}</option>
+                  {/each}
+                </optgroup>
               {/each}
             </select>
 
