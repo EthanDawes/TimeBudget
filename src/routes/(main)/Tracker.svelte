@@ -74,7 +74,7 @@
   let unallocatedBudget = $derived(DAY - Object.values(budget).reduce((a, b) => a + b, 0))
   let unallocatedSpent = $derived(
     Object.entries(effectiveSpent).reduce(
-      (acc, [subcat, val]) => acc + Math.max(0, val - budget[subcat]),
+      (acc, [subcat, val]) => acc + Math.max(0, val - (budget[subcat] ?? 0)),
       0,
     ),
   )
