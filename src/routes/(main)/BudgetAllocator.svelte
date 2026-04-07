@@ -415,7 +415,10 @@
       showReallocationMode ? previewBudget : budget,
       effectiveAccumulatedTime,
     )}
-    {@const remainingUnallocated = Math.max(0, unallocatedTime - unallocatedOverage)}
+    {@const remainingUnallocated = Math.max(
+      0,
+      unallocatedTime - (unallocatedOverage + unallocatedScheduledTime),
+    )}
 
     <div
       class="block {isSourceCategory || isTargetCategory || hasSelectedSubcategory
