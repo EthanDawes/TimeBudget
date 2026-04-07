@@ -2,11 +2,12 @@
   import BudgetCalendar from "./BudgetCalendar.svelte"
   import BudgetAllocator from "./BudgetAllocator.svelte"
   import Tracker from "./Tracker.svelte"
+  import { shiftWeekday } from "$lib/time"
 
   const eventChannel = new EventTarget()
 
   let width = $state(window.innerWidth)
-  let selectedDay = $state(0)
+  let selectedDay = $state(shiftWeekday(new Date().getDay()))
 
   window.addEventListener("resize", () => {
     width = window.innerWidth
