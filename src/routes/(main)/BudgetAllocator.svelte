@@ -25,34 +25,11 @@
     fmtDuration,
   } from "$lib/time"
   import { ceilTo } from "$lib"
-  import { onDestroy } from "svelte"
 
   let { eventChannel, selectedDay }: { eventChannel: EventTarget; selectedDay: number } = $props()
 
   let budget = $state<Budget[]>([])
   let accumulatedTime = $state({} as AccumulatedTime)
-
-  let _activeTasks = liveQuery(() => activeTimers())
-  let activeTasks = $derived($_activeTasks || [])
-  let now = $state(nowMinutes())
-  const ticker = setInterval(() => {
-    now = nowMinutes()
-  }, 30_000)
-  onDestroy(() => clearInterval(ticker))
-
-  let effectiveAccumulatedTime = $derived.by(() => {
-    const result = { ...accumulatedTime }
-    for (const task of activeTasks) {
-      if (task.category && task.subcategory) {
-        const key = task.category + task.subcategory
-        result[key] = (result[key] ?? 0) + Math.max(0, now - task.timestampStart)
-      }
-    }
-    return result
-  })
-  let effectiveCategoryOverages = $derived(
-    calculateCategoryOverage(budget, effectiveAccumulatedTime),
-  )
   let categoryOverages = $state({} as Record<string, number>)
   let unallocatedTime = $state(0)
   let scheduledTime = $state({} as Record<string, number>)
@@ -151,12 +128,7 @@
     }
 
     // Reallocation mode behavior
-    const availableTime = getAvailableTime(
-      budget,
-      effectiveAccumulatedTime,
-      category,
-      subcategory || null,
-    )
+    const availableTime = getAvailableTime(budget, accumulatedTime, category, subcategory || null)
 
     const selection = { category, subcategory }
 
@@ -208,7 +180,7 @@
     if (!showReallocationMode) return
 
     const selection = { category: null, subcategory: undefined }
-    const availableTime = getAvailableTime(budget, effectiveAccumulatedTime, null, null)
+    const availableTime = getAvailableTime(budget, accumulatedTime, null, null)
 
     if (!sourceSelection) {
       // For source selection, must have available time
@@ -280,7 +252,7 @@
     return Math.floor(
       getAvailableTime(
         budget,
-        effectiveAccumulatedTime,
+        accumulatedTime,
         sourceSelection.category,
         sourceSelection.subcategory || null,
       ),
@@ -384,12 +356,7 @@
 <div class="flex flex-col gap-5 {showReallocationMode ? 'mt-32' : ''}">
   {#each showReallocationMode ? previewBudget : budget as category}
     {@const categoryName = category.name}
-    {@const categoryAvailable = getAvailableTime(
-      budget,
-      effectiveAccumulatedTime,
-      categoryName,
-      null,
-    )}
+    {@const categoryAvailable = getAvailableTime(budget, accumulatedTime, categoryName, null)}
     {@const isSourceCategory =
       sourceSelection?.category === categoryName && !sourceSelection.subcategory}
     {@const isTargetCategory =
@@ -403,7 +370,7 @@
       category.time - category.subcategories.reduce((sum, s) => sum + s.time, 0)}
     {@const totalSubcategoryOverage = category.subcategories.reduce((sum, s) => {
       const subKey = categoryName + s.name
-      const projected = (effectiveAccumulatedTime[subKey] ?? 0) + (scheduledTime[subKey] ?? 0)
+      const projected = (accumulatedTime[subKey] ?? 0) + (scheduledTime[subKey] ?? 0)
       return sum + Math.max(0, projected - s.time)
     }, 0)}
     {@const poolAllocated = Math.min(totalSubcategoryOverage, totalCategorySpillover)}
@@ -413,7 +380,7 @@
     )}
     {@const unallocatedOverage = calculateOverage(
       showReallocationMode ? previewBudget : budget,
-      effectiveAccumulatedTime,
+      accumulatedTime,
     )}
     {@const remainingUnallocated = Math.max(0, unallocatedTime - unallocatedOverage)}
 
@@ -457,7 +424,7 @@
         {@const subcategoryBudget = sub.time}
         {@const subcategoryAvailable = getAvailableTime(
           budget,
-          effectiveAccumulatedTime,
+          accumulatedTime,
           categoryName,
           subcategoryName,
         )}
@@ -471,7 +438,7 @@
         {@const isDisabled = showReallocationMode && !sourceSelection && subcategoryAvailable <= 0}
         {@const subcategoryOverage = Math.max(
           0,
-          (effectiveAccumulatedTime[categoryName + subcategoryName] ?? 0) +
+          (accumulatedTime[categoryName + subcategoryName] ?? 0) +
             (scheduledTime[categoryName + subcategoryName] ?? 0) -
             subcategoryBudget,
         )}
@@ -479,7 +446,7 @@
           totalSubcategoryOverage > 0
             ? (subcategoryOverage / totalSubcategoryOverage) * poolAllocated
             : 0}
-        {@const subcategorySpent = effectiveAccumulatedTime[categoryName + subcategoryName] ?? 0}
+        {@const subcategorySpent = accumulatedTime[categoryName + subcategoryName] ?? 0}
         {@const subcategoryScheduled = scheduledTime[categoryName + subcategoryName] ?? 0}
 
         <div
@@ -515,13 +482,13 @@
   {/each}
 
   {#snippet unallocatedSection()}
-    {@const unallocatedAvailable = getAvailableTime(budget, effectiveAccumulatedTime, null, null)}
+    {@const unallocatedAvailable = getAvailableTime(budget, accumulatedTime, null, null)}
     {@const isSourceUnallocated = sourceSelection?.category === null}
     {@const isTargetUnallocated = targetSelection?.category === null}
     {@const isUnallocatedDisabled =
       showReallocationMode && !sourceSelection && unallocatedAvailable <= 0}
 
-    {@const unallocatedSpent = calculateOverage(budget, effectiveAccumulatedTime)}
+    {@const unallocatedSpent = calculateOverage(budget, accumulatedTime)}
     <div class={isSourceUnallocated || isTargetUnallocated ? "rounded border bg-white p-2" : ""}>
       <LabeledProgress
         spent={unallocatedSpent + unallocatedScheduledTime}
