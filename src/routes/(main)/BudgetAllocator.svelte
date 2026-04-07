@@ -401,7 +401,11 @@
 
     {@const totalCategorySpillover =
       category.time - category.subcategories.reduce((sum, s) => sum + s.time, 0)}
-    {@const totalSubcategoryOverage = effectiveCategoryOverages[categoryName] ?? 0}
+    {@const totalSubcategoryOverage = category.subcategories.reduce((sum, s) => {
+      const subKey = categoryName + s.name
+      const projected = (effectiveAccumulatedTime[subKey] ?? 0) + (scheduledTime[subKey] ?? 0)
+      return sum + Math.max(0, projected - s.time)
+    }, 0)}
     {@const poolAllocated = Math.min(totalSubcategoryOverage, totalCategorySpillover)}
     {@const remainingCategorySpillover = Math.max(
       0,
@@ -467,7 +471,9 @@
         {@const isDisabled = showReallocationMode && !sourceSelection && subcategoryAvailable <= 0}
         {@const subcategoryOverage = Math.max(
           0,
-          (effectiveAccumulatedTime[categoryName + subcategoryName] ?? 0) - subcategoryBudget,
+          (effectiveAccumulatedTime[categoryName + subcategoryName] ?? 0) +
+            (scheduledTime[categoryName + subcategoryName] ?? 0) -
+            subcategoryBudget,
         )}
         {@const categorySpilloverForThis =
           totalSubcategoryOverage > 0
