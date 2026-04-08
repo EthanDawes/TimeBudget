@@ -18,7 +18,7 @@
   import { onDestroy } from "svelte"
 
   const todayDay = shiftWeekday(new Date().getDay())
-  const todayStart = new Date().setHours(0, 0, 0, 0) * MILLISECOND
+  const todayStart = new Date().setHours(0, 0, 0, 0) * MILLISECOND - 1 // subtract 1 to include events that start exactly at midnight
 
   let _currentTasks = liveQuery(() => activeTimers())
   let currentTasks = $derived($_currentTasks || [])
