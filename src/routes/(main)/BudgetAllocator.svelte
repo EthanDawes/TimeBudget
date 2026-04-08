@@ -524,24 +524,33 @@
             used: {fmtDuration(subcategorySpent)}<br />
             scheduled: {fmtDuration(subcategoryScheduled)}<br />
             {#each Array.from({ length: 7 }) as _, idx}
-              {["M", "T", "W", "R", "F", "S", "J"][idx]}:
               {#if idx < shiftWeekday(new Date().getDay())}
-                {fmtDuration(
-                  ($timeEntries ?? [])
-                    .filter(
-                      (ev) =>
-                        ev.category === categoryName &&
-                        ev.subcategory === subcategoryName &&
-                        shiftWeekday(new Date(ev.timestampStart / MILLISECOND).getDay()) === idx,
-                    )
-                    .reduce((acc, ev) => acc + (ev?.duration ?? 0), 0),
-                )}
+                {@const d = ($timeEntries ?? [])
+                  .filter(
+                    (ev) =>
+                      ev.category === categoryName &&
+                      ev.subcategory === subcategoryName &&
+                      shiftWeekday(new Date(ev.timestampStart / MILLISECOND).getDay()) === idx,
+                  )
+                  .reduce((acc, ev) => acc + (ev?.duration ?? 0), 0)}
+                {#if d > 0}
+                  {["M", "T", "W", "R", "F", "S", "J"][idx]}:
+                  {fmtDuration(d)}
+                  <br />
+                {/if}
               {:else}
-                {#each ($schedule ?? []).filter((ev) => ev.cat === categoryName && ev.subcat === subcategoryName && ev.day === idx) as { name, duration, subcat }}
-                  {name ?? subcat} {fmtDuration(duration)}
-                {/each}
+                {@const todaySchedule = ($schedule ?? []).filter(
+                  (ev) =>
+                    ev.cat === categoryName && ev.subcat === subcategoryName && ev.day === idx,
+                )}
+                {@const d = todaySchedule.reduce((acc, ev) => acc + (ev?.duration ?? 0), 0)}
+                {#if d > 0}
+                  {["M", "T", "W", "R", "F", "S", "J"][idx]}:
+                  {fmtDuration(d)}
+                  ({todaySchedule.map((ev) => ev.name ?? ev.subcat).join(", ")})
+                  <br />
+                {/if}
               {/if}
-              <br />
             {/each}
           </div>
         </div>
