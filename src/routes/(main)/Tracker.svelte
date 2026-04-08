@@ -146,6 +146,15 @@
 {/if}
 
 <div class="flex flex-col gap-5" class:scale-50={zoomOut}>
+  {#if zoomOut}
+    <h2 class="h-0 text-center text-xl font-bold">
+      {new Intl.DateTimeFormat(undefined, {
+        weekday: "short",
+        month: "numeric",
+        day: "numeric",
+      }).format(new Date())}
+    </h2>
+  {/if}
   {#each budgetTemplate as cat}
     <div class="block">
       <div class="px-3 py-1">
