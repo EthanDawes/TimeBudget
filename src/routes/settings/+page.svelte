@@ -59,6 +59,12 @@
     await refreshEvents()
     eventsRefreshing = false
   }
+
+  async function clearEvents() {
+    if (!confirm("Are you sure?")) return
+    await db.schedule.where("calId").notEqual("").delete()
+    await db.metadata.put({ key: "calIdCatMap", value: {} })
+  }
 </script>
 
 <svelte:head>
@@ -93,6 +99,9 @@
       <button class="border" onclick={handleEventRefresh}>
         {eventsRefreshing ? "Refreshing..." : "Refresh events"}
       </button>
+    </p>
+    <p>
+      <button class="border" onclick={clearEvents}>Clear events</button>
     </p>
     {#if googleConnected}
       <h3>Calendars</h3>
