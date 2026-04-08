@@ -23,6 +23,7 @@
     nowMinutes,
     parseTimeString,
     fmtDuration,
+    shiftWeekday,
   } from "$lib/time"
   import { ceilTo } from "$lib"
   import { onDestroy } from "svelte"
@@ -62,6 +63,10 @@
   let targetSelection = $state<{ category: string | null; subcategory?: string } | null>(null)
   let reallocationAmount = $state(0)
   let reallocationAmountText = $state("")
+
+  // Temp insights, see which are useful
+  let schedule = liveQuery(() => db.schedule.toArray())
+  let timeEntries = liveQuery(() => db.timeEntries.toArray())
 
   $effect(() => {
     if (reallocationAmount > maxReallocationAmount) reallocationAmount = maxReallocationAmount
@@ -147,6 +152,7 @@
 
   function handleCategoryClick(category: string, subcategory?: string) {
     if (!showReallocationMode) {
+      //
       return
     }
 
@@ -514,6 +520,30 @@
             {/if}
             {subcategoryName}
           </LabeledProgress>
+          <div class="mt-[-6px] mb-1.5">
+            used: {fmtDuration(subcategorySpent)}<br />
+            scheduled: {fmtDuration(subcategoryScheduled)}<br />
+            {#each Array.from({ length: 7 }) as _, idx}
+              {["M", "T", "W", "R", "F", "S", "J"][idx]}:
+              {#if idx < shiftWeekday(new Date().getDay())}
+                {fmtDuration(
+                  ($timeEntries ?? [])
+                    .filter(
+                      (ev) =>
+                        ev.category === categoryName &&
+                        ev.subcategory === subcategoryName &&
+                        shiftWeekday(new Date(ev.timestampStart / MILLISECOND).getDay()) === idx,
+                    )
+                    .reduce((acc, ev) => acc + (ev?.duration ?? 0), 0),
+                )}
+              {:else}
+                {#each ($schedule ?? []).filter((ev) => ev.cat === categoryName && ev.subcat === subcategoryName && ev.day === idx) as { name, duration, subcat }}
+                  {name ?? subcat} {fmtDuration(duration)}
+                {/each}
+              {/if}
+              <br />
+            {/each}
+          </div>
         </div>
       {/each}
     </div>
