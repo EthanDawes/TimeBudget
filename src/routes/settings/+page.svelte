@@ -90,9 +90,9 @@
       {/if}
     </p>
     <p>
-      <button class="border" onclick={handleEventRefresh}
-        >{eventsRefreshing ? "Refreshing..." : "Refresh events"}</button
-      >
+      <button class="border" onclick={handleEventRefresh}>
+        {eventsRefreshing ? "Refreshing..." : "Refresh events"}
+      </button>
     </p>
     {#if googleConnected}
       <h3>Calendars</h3>
