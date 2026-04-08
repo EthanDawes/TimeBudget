@@ -492,7 +492,9 @@
         >
           <LabeledProgress
             spent={subcategorySpent + subcategoryScheduled}
-            overlayStart={subcategoryScheduled > 0 ? subcategorySpent : undefined}
+            overlayStart={subcategorySpent > 0 || subcategoryScheduled > 0
+              ? subcategorySpent
+              : undefined}
             budget={subcategoryBudget}
             {totalCategorySpillover}
             {categorySpilloverForThis}
