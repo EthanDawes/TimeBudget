@@ -27,6 +27,7 @@
   let todayEvents = $derived($_todayEvents || [])
   let _budgetTemplate = liveQuery(() => loadBudgetConfig())
   let budgetTemplate = $derived($_budgetTemplate || [])
+  let zoomOut = $state(false)
 
   // Maps subcat to time budgeted
   let budget = $derived(
@@ -144,7 +145,7 @@
   </div>
 {/if}
 
-<div class="flex flex-col gap-5">
+<div class="flex flex-col gap-5" class:scale-50={zoomOut}>
   {#each budgetTemplate as cat}
     <div class="block">
       <div class="px-3 py-1">
@@ -192,6 +193,10 @@
     <button class="border">Settings</button>
   </a>
   <button class="border" onclick={exportSpentTime}>Export</button>
+  <label>
+    Zoom&nbsp;out
+    <input type="checkbox" bind:checked={zoomOut} />
+  </label>
 </div>
 
 <SplitTimeModal {currentTasks} bind:isOpen={showSplitTimeModal} onsubmit={handleSplitTimeSubmit} />
