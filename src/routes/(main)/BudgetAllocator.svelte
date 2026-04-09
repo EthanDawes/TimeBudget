@@ -521,7 +521,17 @@
             {subcategoryName}
           </LabeledProgress>
           <div class="mt-[-6px] mb-1.5">
-            used: {fmtDuration(subcategorySpent)}<br />
+            pace: {fmtDuration(
+              subcategorySpent -
+                ($schedule ?? [])
+                  .filter(
+                    (ev) =>
+                      ev.day < shiftWeekday(new Date().getDay()) &&
+                      ev.cat === categoryName &&
+                      ev.subcat === subcategoryName,
+                  )
+                  .reduce((acc, ev) => acc + (ev?.duration ?? 0), 0),
+            )}<br />
             scheduled: {fmtDuration(subcategoryScheduled)}<br />
             {#each Array.from({ length: 7 }) as _, idx}
               {#if idx < shiftWeekday(new Date().getDay())}
