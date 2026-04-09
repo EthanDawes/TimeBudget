@@ -522,7 +522,15 @@
           </LabeledProgress>
           <div class="mt-[-6px] mb-1.5">
             pace: {fmtDuration(
-              subcategorySpent -
+              ($timeEntries ?? [])
+                .filter(
+                  (ev) =>
+                    ev.category === categoryName &&
+                    ev.subcategory === subcategoryName &&
+                    shiftWeekday(new Date(ev.timestampStart / MILLISECOND).getDay()) <
+                      shiftWeekday(new Date().getDay()),
+                )
+                .reduce((acc, ev) => acc + (ev?.duration ?? 0), 0) -
                 ($schedule ?? [])
                   .filter(
                     (ev) =>
