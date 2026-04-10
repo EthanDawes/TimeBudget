@@ -17,6 +17,7 @@
   import { db } from "$lib/db"
   import { onDestroy } from "svelte"
 
+  // If I forget to take a screenshot by the end of the day, rather than adding a UI feature, just change date in settings.
   const todayDay = shiftWeekday(new Date().getDay())
   const todayStart = new Date().setHours(0, 0, 0, 0) * MILLISECOND - 1 // subtract 1 to include events that start exactly at midnight
 
@@ -43,7 +44,7 @@
   let _spent = liveQuery(() =>
     db.timeEntries
       .where("timestampStart")
-      .above(todayStart)
+      .between(todayStart, todayStart + DAY) // Upper bound is useful if looking back in time
       .toArray()
       .then((entries) =>
         entries.reduce(

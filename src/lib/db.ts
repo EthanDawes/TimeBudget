@@ -95,7 +95,9 @@ db.cloud.configure({
 })
 
 export async function exportSpentTime() {
-  const useExcel = confirm("Export to Excel format?")
+  const useExcel = confirm(
+    "Export to Excel format? (Date/durations are in days, otherwise ISO/minutes)",
+  )
 
   // Get all time entries from the database
   const allEntries = await db.timeEntries.toArray()

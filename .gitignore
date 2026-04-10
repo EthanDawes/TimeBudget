@@ -1,6 +1,7 @@
 node_modules
 client_secret*
 TODO.md
+analysis/
 
 # Output
 .output
