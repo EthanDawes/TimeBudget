@@ -101,3 +101,8 @@ export function parseTimeToMinutes(timeText: string, baseDate: number = nowMinut
     return baseDate
   }
 }
+
+export const dateToExcel = (date: Date) => {
+  const excelEpoch = new Date(Date.UTC(1899, 11, 30)) // Dec 30, 1899 because of leap year bug
+  return ((date.getTime() - excelEpoch.getTime()) * MILLISECOND) / DAY
+}

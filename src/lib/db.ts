@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from "dexie"
 import dexieCloud, { type DexieCloudTable } from "dexie-cloud-addon"
-import { MILLISECOND, DAY } from "./time"
+import { MILLISECOND, DAY, dateToExcel } from "./time"
 
 export interface TimeEntry {
   id: number
@@ -95,6 +95,8 @@ db.cloud.configure({
 })
 
 export async function exportSpentTime() {
+  const useExcel = confirm("Export to Excel format?")
+
   // Get all time entries from the database
   const allEntries = await db.timeEntries.toArray()
 
@@ -102,14 +104,14 @@ export async function exportSpentTime() {
   allEntries.pop()
 
   // Create CSV header
-  const csvHeader = "ID,Category,Subcategory,Start Time,Duration (days)\n"
+  const csvHeader = "ID,Category,Subcategory,Start Time,Duration\n"
 
   // Convert entries to CSV rows
   const csvRows = allEntries
     .map((entry) => {
-      const startTime = new Date(entry.timestampStart / MILLISECOND).toISOString()
+      const startTime = new Date(entry.timestampStart / MILLISECOND)
 
-      return `${entry.id},"${entry.category}","${entry.subcategory}","${startTime}",${entry.duration! / DAY}`
+      return `${entry.id},"${entry.category}","${entry.subcategory}","${useExcel ? dateToExcel(startTime) : startTime.toISOString()}",${entry.duration! / (useExcel ? DAY : 1)}`
     })
     .join("\n")
 
