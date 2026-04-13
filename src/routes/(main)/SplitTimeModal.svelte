@@ -4,7 +4,6 @@
     formatTimeFromMinutes,
     HOUR,
     MILLISECOND,
-    MINUTE,
     nowMinutes,
     parseTimeToMinutes,
   } from "$lib/time"
@@ -42,7 +41,6 @@
         startTimeText: formatTimeFromMinutes(firstTask.timestampStart),
         category: firstTask.category,
         subcategory: firstTask.subcategory,
-        isConcurrent: false,
       },
       {
         // Very similar to calling `addEntry` but for some reason doing that here error loops
@@ -51,7 +49,6 @@
         startTimeText: "",
         category: firstTask.category,
         subcategory: firstTask.subcategory,
-        isConcurrent: false,
       },
     ]
   }
@@ -65,29 +62,14 @@
       startTimeText: "",
       category: lastEntry.category,
       subcategory: lastEntry.subcategory,
-      isConcurrent: false,
     }
 
     splitEntries.push(newEntry)
-    sortEntriesByTime()
   }
 
   function removeEntry(index: number) {
     if (index === 0) return // Can't remove first entry
     splitEntries.splice(index, 1)
-  }
-
-  function sortEntriesByTime() {
-    // Keep the first entry in place, sort the rest by start time
-    const firstEntry = splitEntries[0]
-    const restEntries = splitEntries.slice(1).sort((a, b) => {
-      // Put entries without valid start times last
-      if (!a.startTime && !b.startTime) return 0
-      if (!a.startTime) return 1
-      if (!b.startTime) return -1
-      return a.startTime - b.startTime
-    })
-    splitEntries = [firstEntry, ...restEntries]
   }
 
   function updateStartTime(index: number, timeText: string) {
@@ -99,9 +81,6 @@
     if (timeText.trim()) {
       entry.startTime = parseTimeToMinutes(timeText)
     }
-
-    // Sort entries by time and trigger reactivity
-    sortEntriesByTime()
   }
 
   function updateEndTime(index: number, timeText: string) {
@@ -110,23 +89,6 @@
 
     if (timeText.trim()) {
       entry.endTime = parseTimeToMinutes(timeText)
-    }
-
-    // Update splitEntries to trigger reactivity
-    splitEntries = [...splitEntries]
-  }
-
-  function toggleConcurrent(index: number) {
-    const entry = splitEntries[index]
-    entry.isConcurrent = !entry.isConcurrent
-
-    if (entry.isConcurrent && !entry.endTime && entry.startTime) {
-      // Set default end time to 1 hour after start
-      entry.endTime = entry.startTime + HOUR
-      entry.endTimeText = formatTimeFromMinutes(entry.endTime)
-    } else if (!entry.isConcurrent) {
-      entry.endTime = undefined
-      entry.endTimeText = undefined
     }
 
     // Update splitEntries to trigger reactivity
@@ -149,11 +111,6 @@
 
       if (!entry.startTimeText?.trim()) {
         alert(`Entry ${i + 1}: Start time cannot be empty`)
-        return
-      }
-
-      if (entry.isConcurrent && !entry.endTimeText?.trim()) {
-        alert(`Entry ${i + 1}: End time cannot be empty for concurrent tasks`)
         return
       }
 
@@ -258,40 +215,11 @@
           <!-- Duration and controls row -->
           <div class="flex items-center gap-2 text-sm">
             <!-- Duration display -->
-            {#if entry.isConcurrent && entry.startTime && entry.endTime}
-              <div class="text-gray-600">
-                Duration: {fmtDuration(entry.endTime - entry.startTime)}
-              </div>
-            {:else if !entry.isConcurrent}
+            {#if entry.startTime}
               {@const nextEntry = splitEntries[index + 1]}
               {@const endTime = nextEntry?.startTime || nowMinutes()}
-              {#if entry.startTime}
-                <div class="text-gray-600">
-                  Duration: {fmtDuration(endTime - entry.startTime)}
-                </div>
-              {/if}
-            {/if}
-
-            <!-- Concurrent toggle -->
-            <label class="ml-auto flex items-center gap-1 text-sm">
-              <input
-                type="checkbox"
-                checked={entry.isConcurrent}
-                onchange={() => toggleConcurrent(index)}
-              />
-              Concurrent
-            </label>
-
-            <!-- End time (only for concurrent tasks) -->
-            {#if entry.isConcurrent}
-              <div class="flex-shrink-0">
-                <input
-                  type="text"
-                  value={entry.endTimeText || ""}
-                  oninput={(e) => updateEndTime(index, (e.target as HTMLInputElement).value)}
-                  class="w-16 rounded border px-1 py-1 text-center text-sm sm:w-20 sm:px-2"
-                  placeholder="13:30"
-                />
+              <div class="text-gray-600">
+                Duration: {fmtDuration(endTime - entry.startTime)}
               </div>
             {/if}
           </div>

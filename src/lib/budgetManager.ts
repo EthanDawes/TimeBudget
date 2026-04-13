@@ -319,7 +319,6 @@ export interface SplitEntry {
   startTimeText: string
   category: string
   subcategory: string
-  isConcurrent: boolean
   endTime?: number
   endTimeText?: string
 }
