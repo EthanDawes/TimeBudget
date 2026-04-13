@@ -171,9 +171,9 @@
           class="flex flex-col gap-2 rounded-lg border bg-gray-50 p-2 sm:flex-row sm:items-center sm:gap-3 sm:p-3"
         >
           <!-- Main row with start time, category, and controls -->
-          <div class="flex flex-1 items-center gap-2">
-            <!-- Start time -->
-            <div class="flex-shrink-0">
+          <div class="flex flex-1 items-center items-start gap-2">
+            <!-- Start time + duration stacked -->
+            <div class="flex flex-shrink-0 flex-col items-center gap-0.5">
               <input
                 type="text"
                 value={entry.startTimeText}
@@ -185,6 +185,13 @@
                   : ''}"
                 placeholder="12:30"
               />
+              {#if entry.startTime}
+                {@const nextEntry = splitEntries[index + 1]}
+                {@const endTime = nextEntry?.startTime || nowMinutes()}
+                <div class="text-center text-xs text-gray-500">
+                  {fmtDuration(endTime - entry.startTime)}
+                </div>
+              {/if}
             </div>
 
             <!-- Category/Subcategory dropdown -->
@@ -210,18 +217,6 @@
             >
               ×
             </button>
-          </div>
-
-          <!-- Duration and controls row -->
-          <div class="flex items-center gap-2 text-sm">
-            <!-- Duration display -->
-            {#if entry.startTime}
-              {@const nextEntry = splitEntries[index + 1]}
-              {@const endTime = nextEntry?.startTime || nowMinutes()}
-              <div class="text-gray-600">
-                Duration: {fmtDuration(endTime - entry.startTime)}
-              </div>
-            {/if}
           </div>
         </div>
       {/each}
