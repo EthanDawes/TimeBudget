@@ -23,7 +23,11 @@ export function fmtDuration(minutes: number) {
   return [sign, hours ? `${hours}h ` : "", remaining || !hours ? `${remaining}m` : ""].join("")
 }
 
-/** Get the start of the current week (Monday) */
+// getWeekStart and getWeekId serve different purposes that cannot be combined:
+// getWeekStart is for local monday at midnight (for UI)
+// getWeekId is UTC and for consistent database storage/ week identification
+
+/** Get the start of the current week (Monday) in local time */
 export function getWeekStart(): number {
   const now = new Date()
   const day = now.getDay()

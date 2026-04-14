@@ -86,7 +86,7 @@
 
   $effect(() => {
     const subscription = liveQuery(async () => {
-      const todayDayIndex = new Date().getDay() - 1 // Monday=0, Sunday=-1 (matches Schedule.day)
+      const todayDayIndex = shiftWeekday(new Date().getDay())
       const todayStart = (() => {
         const d = new Date()
         d.setHours(0, 0, 0, 0)
