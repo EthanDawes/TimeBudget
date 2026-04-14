@@ -12,7 +12,7 @@
     reallocateTime,
     type AccumulatedTime,
   } from "$lib/budgetManager"
-  import { db, exportSpentTime, type Budget } from "$lib/db"
+  import { db, exportSpentTime, type Budget, Leftovers } from "$lib/db"
   import { liveQuery } from "dexie"
   import LabeledProgress from "./LabeledProgress.svelte"
   import { resolve } from "$app/paths"
@@ -21,8 +21,9 @@
     MILLISECOND,
     MINUTE,
     WEEK,
+    DAY,
     nowMinutes,
-    parseTimeString,
+    parseDuration,
     fmtDuration,
     shiftWeekday,
     getWeekStart,
@@ -144,6 +145,11 @@
     setState()
   })
 
+  eventChannel.addEventListener("scheduleClicked", (ev) => {
+    const detail = (ev as CustomEvent).detail
+    handleCategoryClick(detail.cat, detail.subcat)
+  })
+
   function handleReallocationModeToggle() {
     showReallocationMode = !showReallocationMode
     if (!showReallocationMode) {
@@ -155,9 +161,50 @@
     }
   }
 
-  function handleCategoryClick(category: string, subcategory?: string) {
+  async function handleCategoryClick(category: string, subcategory?: string) {
     if (!showReallocationMode) {
-      //
+      const scheduleToday = await db.schedule
+        .where({ day: selectedDay, cat: category, subcat: subcategory })
+        .toArray()
+
+      // Get scheduled time for today
+      const allCalendarTimeToday = scheduleToday
+        .filter((event) => event.calId)
+        .reduce((acc, event) => acc + event.duration, 0)
+
+      // Since calendar time can only be changed from the calendar, this is the amound of time that can be changed from the UI
+      // There should only be one manually defined (non-event) schedule per subcat per day
+      const generalScheduleToday = scheduleToday.find((event) => !event.calId) ?? {
+        day: selectedDay,
+        duration: 0,
+        calId: "",
+        leftovers: Leftovers.ROLLOVER,
+        cat: category,
+        subcat: subcategory as string,
+      }
+      const scheduledTimeToday = generalScheduleToday.duration
+
+      // Visually check subcat allocator multibar to see remaining time total
+      // Visually check "Unallocated time" on tracker page for free time available today. Wasn't worth bringing all that logic here
+      // Visually check subcat tracker multibar for time over/under scheduled time today
+
+      // Prompt user
+      const response = prompt(
+        `Editing scheduled time on ${daysOfWeek[selectedDay]} for ${subcategory}\n\n` +
+          `From synced calendar (cannot edit here): ${fmtDuration(allCalendarTimeToday)}\n` +
+          `General scheduled time: ${fmtDuration(scheduledTimeToday)}\n` +
+          `Total scheduled time: ${fmtDuration(scheduledTimeToday + allCalendarTimeToday)}\n` +
+          `How much time do you want to schedule?`,
+        fmtDuration(scheduledTimeToday),
+      )
+      if (!response) return
+
+      generalScheduleToday.duration = parseDuration(response)
+      // User provided an invalid time
+      if (generalScheduleToday.duration === 0 && response[0] != "0")
+        handleCategoryClick(category, subcategory)
+      else await db.schedule.put(generalScheduleToday)
+
       return
     }
 
@@ -259,7 +306,7 @@
 
   function updateAmountFromText() {
     try {
-      const parsed = parseTimeString(reallocationAmountText)
+      const parsed = parseDuration(reallocationAmountText)
       reallocationAmount = parsed
     } catch {
       // Invalid format, keep current amount

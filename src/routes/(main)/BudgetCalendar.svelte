@@ -43,6 +43,13 @@
 
   loadBudgetConfig().then((b) => (budget = b))
 
+  function handleScheduleClick(event: Schedule & { start: number }) {
+    selectedDay = event.day
+    eventChannel.dispatchEvent(
+      new CustomEvent("scheduleClicked", { detail: { cat: event.cat, subcat: event.subcat } }),
+    )
+  }
+
   function handleEventClick(event: Schedule & { start: number }, e: MouseEvent) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     clickPos = { x: rect.left, y: rect.bottom }
@@ -110,7 +117,9 @@
       duration={event.duration / HOUR}
       dayIndex={event.day}
       color={event.cat ? getSubcategoryColor(event.cat, event.subcat) : "red"}
-      onclick={event.calId ? handleEventClick.bind(null, event) : undefined}
+      onclick={event.calId
+        ? handleEventClick.bind(null, event)
+        : handleScheduleClick.bind(null, event)}
     >
       {event.name || event.subcat}
     </CalEvent>

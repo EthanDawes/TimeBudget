@@ -21,7 +21,9 @@ export function fmtDuration(minutes: number) {
   const abs = Math.abs(minutes)
   const hours = Math.floor(abs / HOUR)
   const remaining = abs % HOUR
-  return [sign, hours ? `${hours}h ` : "", remaining || !hours ? `${remaining}m` : ""].join("")
+  return [sign, hours ? `${hours}h ` : "", remaining || !hours ? `${remaining}m` : ""]
+    .join("")
+    .trim()
 }
 
 // getWeekStart and getWeekId serve different purposes that cannot be combined:
@@ -55,7 +57,7 @@ export const nowMinutes = () => Date.now() * MILLISECOND
 export const shiftWeekday = (weekday: number) => (weekday + 6) % 7
 
 // Parse time string in format like "1h 30m", "45m", "2h"
-export function parseTimeString(timeStr: string): number {
+export function parseDuration(timeStr: string): number {
   const trimmed = timeStr.trim().toLowerCase()
   let totalMinutes = 0
 
