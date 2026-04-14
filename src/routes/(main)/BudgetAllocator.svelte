@@ -20,10 +20,12 @@
     daysOfWeek,
     MILLISECOND,
     MINUTE,
+    WEEK,
     nowMinutes,
     parseTimeString,
     fmtDuration,
     shiftWeekday,
+    getWeekStart,
   } from "$lib/time"
   import { ceilTo } from "$lib"
   import { onDestroy } from "svelte"
@@ -95,7 +97,10 @@
 
       const [schedules, todayEntries] = await Promise.all([
         db.schedule.toArray(),
-        db.timeEntries.where("timestampStart").aboveOrEqual(todayStart).toArray(),
+        db.timeEntries
+          .where("timestampStart")
+          .between(todayStart, getWeekStart() + WEEK)
+          .toArray(),
       ])
 
       const todaySpent: Record<string, number> = {}
