@@ -73,6 +73,11 @@ export function parseDuration(timeStr: string): number {
     totalMinutes += parseInt(minutesMatch[1])
   }
 
+  // sign
+  if (trimmed[0] === "-") {
+    totalMinutes *= -1
+  }
+
   return totalMinutes
 }
 

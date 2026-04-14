@@ -194,12 +194,21 @@
           `From synced calendar (cannot edit here): ${fmtDuration(allCalendarTimeToday)}\n` +
           `General scheduled time: ${fmtDuration(scheduledTimeToday)}\n` +
           `Total scheduled time: ${fmtDuration(scheduledTimeToday + allCalendarTimeToday)}\n` +
-          `How much time do you want to schedule?`,
+          `How much time do you want to schedule? (prepend +/- for relative time)`,
         fmtDuration(scheduledTimeToday),
       )
       if (!response) return
 
-      generalScheduleToday.duration = parseDuration(response)
+      let responseMins = parseDuration(response)
+
+      // Calculate relative time
+      if (response[0] === "+" || response[0] === "-")
+        responseMins = scheduledTimeToday + responseMins
+      else responseMins = Math.abs(responseMins)
+      responseMins = Math.max(0, responseMins)
+
+      generalScheduleToday.duration = responseMins
+
       // User provided an invalid time
       if (generalScheduleToday.duration === 0 && response[0] != "0")
         handleCategoryClick(category, subcategory)
