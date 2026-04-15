@@ -76,7 +76,11 @@
 
   // totalBarUnits is stable (constant as spent increases), so this decreases by exactly 1 per unit spent
   let labelRemaining = $derived(
-    isMultiBar && spent > budget ? totalBarUnits - spent : budget - spent,
+    isMultiBar && spent > budget
+      ? totalBarUnits - spent == 0
+        ? -spent * (orangePct / 100)
+        : totalBarUnits - spent
+      : budget - spent,
   )
 
   let overlayTotalUnits = $derived(isMultiBar ? totalBarUnits : Math.max(budget, spent))
