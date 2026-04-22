@@ -9,7 +9,7 @@ const config = {
   kit: {
     adapter: adapter(),
     paths: {
-      base: "/TimeBudget",
+      base: process.argv.includes("dev") ? "/BASE_PATH" : process.env.BASE_PATH,
     },
   },
 }
