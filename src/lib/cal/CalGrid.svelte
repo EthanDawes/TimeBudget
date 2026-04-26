@@ -59,7 +59,7 @@
     })
   })
 
-  const getDaySuffix = (day: number) => {
+  function getDaySuffix(day: number) {
     if (day >= 11 && day <= 13) return "th"
     switch (day % 10) {
       case 1:

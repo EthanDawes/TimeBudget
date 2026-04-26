@@ -3,14 +3,19 @@
   import BudgetAllocator from "./BudgetAllocator.svelte"
   import Tracker from "./Tracker.svelte"
   import { shiftWeekday } from "$lib/time"
+  import { onMount } from "svelte"
 
   const eventChannel = new EventTarget()
 
-  let width = $state(window.innerWidth)
+  let width = $state(-1)
   let selectedDay = $state(shiftWeekday(new Date().getDay()))
 
-  window.addEventListener("resize", () => {
+  onMount(() => {
     width = window.innerWidth
+
+    window.addEventListener("resize", () => {
+      width = window.innerWidth
+    })
   })
 </script>
 
@@ -18,7 +23,9 @@
   <title>Time Budget Tracker</title>
 </svelte:head>
 
-{#if width < 768}
+{#if width == -1}
+  <!-- No-op -->
+{:else if width < 768}
   <div class="min-h-dvh w-full bg-gray-50 p-2"><Tracker /></div>
 {:else}
   <div class="flex max-h-dvh w-full bg-gray-50">

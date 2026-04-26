@@ -62,7 +62,7 @@ export const db = new Dexie("TimeBudgetDb", { addons: [dexieCloud] }) as Dexie &
   schedule: DexieCloudTable<Schedule, "id">
   metadata: DexieCloudTable<Metadata, "key">
 }
-window.db = db
+globalThis.db = db
 
 // Schema declaration:
 db.version(10).stores({
