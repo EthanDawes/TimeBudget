@@ -165,22 +165,25 @@
       </div>
 
       {#each cat.subcategories as sub}
-        <div>
-          <LabeledProgress
-            spent={effectiveSpent[sub.name] ?? 0}
-            budget={budget[sub.name] ?? 0}
-            style={"cursor-pointer " + (budget[sub.name] ? "" : "opacity-50")}
-            onclick={() => handleCategoryClick(cat.name, sub.name)}
-          >
-            {@const isRunning = currentTasks.some(
-              (task) => task.category === cat.name && task.subcategory === sub.name,
-            )}
-            {#if isRunning}
-              ▶️
-            {/if}
-            {sub.name}
-          </LabeledProgress>
-        </div>
+        <!-- Don't ?? 0 to budget b/c if there is no budget, its bar shouldn't be shown. -->
+        {#if budget[sub.name] - (effectiveSpent[sub.name] ?? 0) > -30}
+          <div>
+            <LabeledProgress
+              spent={effectiveSpent[sub.name] ?? 0}
+              budget={budget[sub.name] ?? 0}
+              style={"cursor-pointer"}
+              onclick={() => handleCategoryClick(cat.name, sub.name)}
+            >
+              {@const isRunning = currentTasks.some(
+                (task) => task.category === cat.name && task.subcategory === sub.name,
+              )}
+              {#if isRunning}
+                ▶️
+              {/if}
+              {sub.name}
+            </LabeledProgress>
+          </div>
+        {/if}
       {/each}
     </div>
   {/each}
