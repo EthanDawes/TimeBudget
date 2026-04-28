@@ -3,6 +3,7 @@
     accumulateTime,
     activeTimers,
     calculateCategoryOverage,
+    calculateGapTime,
     calculateOverage,
     getUnallocatedTime,
     loadWeeklyBudgetConfig,
@@ -70,6 +71,13 @@
   // Temp insights, see which are useful
   let schedule = liveQuery(() => db.schedule.toArray())
   let timeEntries = liveQuery(() => db.timeEntries.toArray())
+
+  // Gap time: periods between consecutive time entries with no task running count as unallocated
+  let weeklyGapTime = $derived.by(() => {
+    const weekStart = getWeekStart()
+    const entries = ($timeEntries ?? []).filter((e) => e.timestampStart >= weekStart)
+    return calculateGapTime(entries, getWeekStart())
+  })
 
   $effect(() => {
     if (reallocationAmount > maxReallocationAmount) reallocationAmount = maxReallocationAmount
@@ -644,7 +652,7 @@
     {@const isUnallocatedDisabled =
       showReallocationMode && !sourceSelection && unallocatedAvailable <= 0}
 
-    {@const unallocatedSpent = calculateOverage(budget, effectiveAccumulatedTime)}
+    {@const unallocatedSpent = calculateOverage(budget, effectiveAccumulatedTime) + weeklyGapTime}
     <div class={isSourceUnallocated || isTargetUnallocated ? "rounded border bg-white p-2" : ""}>
       <LabeledProgress
         spent={unallocatedSpent + unallocatedScheduledTime}

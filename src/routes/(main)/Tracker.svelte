@@ -7,6 +7,7 @@
     cleanupLongRunningTasks,
     splitTime,
     type SplitEntry,
+    calculateGapTime,
   } from "$lib/budgetManager"
   import { exportSpentTime } from "$lib/db"
   import LabeledProgress from "./LabeledProgress.svelte"
@@ -57,6 +58,14 @@
       ),
   )
   let spent = $derived($_spent || {})
+
+  let timeGap = liveQuery(() =>
+    db.timeEntries
+      .where("timestampStart")
+      .between(todayStart, todayStart + DAY) // Upper bound is useful if looking back in time
+      .toArray()
+      .then((entries) => calculateGapTime(entries, todayStart)),
+  )
 
   let now = $state(nowMinutes())
   const ticker = setInterval(() => {
@@ -189,7 +198,7 @@
   {/each}
 
   <div>
-    <LabeledProgress spent={unallocatedSpent} budget={unallocatedBudget}>
+    <LabeledProgress spent={unallocatedSpent + $timeGap} budget={unallocatedBudget}>
       <h2 class="font-bold">Unallocated time</h2>
     </LabeledProgress>
   </div>

@@ -68,6 +68,53 @@ export async function activeTimers() {
   return db.timeEntries.filter((entry) => entry.duration === undefined).toArray()
 }
 
+// Calculate the total time gaps between consecutive time entries.
+// Gaps (periods when nothing was being tracked) count as unallocated time spent.
+// TrackingStart is the time to start from as a minute timestamp in case the user does not have a starting time entry
+export function calculateGapTime(entries: TimeEntry[], trackingStart: number): number {
+  // Sort by start time
+  const sorted = [
+    {
+      id: getWeekId(),
+      timestampStart: trackingStart,
+      duration: 0,
+      category: "",
+      subcategory: "",
+    } satisfies TimeEntry,
+    ...entries,
+  ].sort((a, b) => a.timestampStart - b.timestampStart)
+
+  if (sorted.at(-1)!.duration !== undefined) {
+    sorted.push({
+      id: getWeekId(),
+      timestampStart: nowMinutes(),
+      duration: 0,
+      category: "",
+      subcategory: "",
+    } satisfies TimeEntry)
+  }
+
+  let totalGap = 0
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const current = sorted[i]
+    const next = sorted[i + 1]
+
+    // Only compute a gap when the current entry has ended (has a duration)
+    if (current.duration === undefined) continue
+
+    const currentEnd = current.timestampStart + current.duration
+    const gap = next.timestampStart - currentEnd
+
+    if (gap > 0) {
+      totalGap += gap
+    }
+  }
+
+  console.log("Gap:", fmtDuration(totalGap))
+  return totalGap
+}
+
 export function accumulateTime(entries: TimeEntry[]): AccumulatedTime {
   // sum by category
   const byCategory = _(entries)
@@ -340,10 +387,7 @@ export async function splitTime(splitEntries: SplitEntry[]): Promise<void> {
 
     let duration: number | undefined
 
-    if (entry.isConcurrent && entry.endTime) {
-      // Concurrent task with explicit end time
-      duration = entry.endTime - entry.startTime
-    } else if (!entry.isConcurrent && nextEntry) {
+    if (nextEntry) {
       // Sequential task - ends when next task starts
       duration = nextEntry.startTime - entry.startTime
     } else if (i === splitEntries.length - 1) {
