@@ -38,7 +38,7 @@
   let isMultiBar = $derived(totalCategorySpillover !== undefined)
 
   // Single-bar: green fill percentage
-  let singlePct = $derived(budget > 0 ? (spent / budget) * 100 : 0)
+  let singlePct = $derived(budget > 0 ? (spent / budget) * 100 : 100)
 
   let overage = $derived(Math.max(0, spent - budget))
   let yellowAmount = $derived(categorySpilloverForThis)
