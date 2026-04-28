@@ -32,7 +32,7 @@
       })
     }
 
-    syncInterval = setInterval(async () => {
+    const sync = async () => {
       if (!isConnected() || isSyncing) return
       isSyncing = true
       try {
@@ -42,7 +42,10 @@
       } finally {
         isSyncing = false
       }
-    }, SYNC_INTERVAL_MS)
+    }
+    sync()
+
+    syncInterval = setInterval(sync, SYNC_INTERVAL_MS)
   })
 
   onDestroy(() => {
