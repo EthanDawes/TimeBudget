@@ -310,6 +310,28 @@ export function getAvailableTime(
   }
 }
 
+// Fix the rare case where 2 or more tasks are running simultaneously (e.g. due to a sync conflict).
+// Sorts them by start time and sets each earlier task's duration so it ends exactly when the next
+// task begins, leaving only the latest-starting task still running.
+export async function fixDuplicateActiveTasks(): Promise<void> {
+  const runningTasks = await activeTimers()
+  if (runningTasks.length < 2) return
+
+  // Sort ascending by start time so the earliest task is first
+  runningTasks.sort((a, b) => a.timestampStart - b.timestampStart)
+
+  console.warn(
+    `Found ${runningTasks.length} simultaneously running tasks — resolving conflict by capping earlier tasks.`,
+  )
+
+  for (let i = 0; i < runningTasks.length - 1; i++) {
+    const task = runningTasks[i]
+    const nextTask = runningTasks[i + 1]
+    const duration = nextTask.timestampStart - task.timestampStart
+    await db.timeEntries.update(task.id!, { duration })
+  }
+}
+
 // Delete tasks that have been running for longer than 24 hours
 export async function cleanupLongRunningTasks(): Promise<void> {
   const now = nowMinutes()
