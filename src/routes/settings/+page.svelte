@@ -69,7 +69,6 @@
 
 <svelte:head>
   <title>Settings - Time Budget Tracker</title>
-  <script src="https://accounts.google.com/gsi/client" async></script>
 </svelte:head>
 
 <div class="min-h-dvh bg-gray-50 p-4">

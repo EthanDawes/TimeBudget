@@ -3,7 +3,14 @@
   // import favicon from "$lib/assets/icon.png"
   import { pwaInfo } from "virtual:pwa-info"
   import { pwaAssetsHead } from "virtual:pwa-assets/head"
-  import { onMount } from "svelte"
+  import { onMount, onDestroy } from "svelte"
+  import { isConnected } from "$lib/cal/calController"
+  import { refreshEvents } from "$lib/scheduleManager"
+
+  const SYNC_INTERVAL_MS = 30 * 60 * 1000 // 30 minutes
+
+  let syncInterval: ReturnType<typeof setInterval> | undefined
+  let isSyncing = false
 
   // Adapted from https://vite-pwa-org.netlify.app/frameworks/sveltekit.html
   onMount(async () => {
@@ -24,6 +31,22 @@
         },
       })
     }
+
+    syncInterval = setInterval(async () => {
+      if (!isConnected() || isSyncing) return
+      isSyncing = true
+      try {
+        await refreshEvents()
+      } catch (e) {
+        console.warn("Periodic calendar sync failed:", e)
+      } finally {
+        isSyncing = false
+      }
+    }, SYNC_INTERVAL_MS)
+  })
+
+  onDestroy(() => {
+    if (syncInterval) clearInterval(syncInterval)
   })
 
   const { children } = $props()
@@ -42,6 +65,7 @@
   {/each}
 
   {@html webManifest}
+  <script src="https://accounts.google.com/gsi/client" async></script>
 </svelte:head>
 
 {@render children?.()}
