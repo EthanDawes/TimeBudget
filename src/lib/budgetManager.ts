@@ -68,6 +68,32 @@ export async function activeTimers() {
   return db.timeEntries.filter((entry) => entry.duration === undefined).toArray()
 }
 
+// Calculate the total time gaps between consecutive time entries.
+// Gaps (periods when nothing was being tracked) count as unallocated time spent.
+export function calculateGapTime(entries: TimeEntry[]): number {
+  // Sort by start time
+  const sorted = [...entries].sort((a, b) => a.timestampStart - b.timestampStart)
+
+  let totalGap = 0
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const current = sorted[i]
+    const next = sorted[i + 1]
+
+    // Only compute a gap when the current entry has ended (has a duration)
+    if (current.duration === undefined) continue
+
+    const currentEnd = current.timestampStart + current.duration
+    const gap = next.timestampStart - currentEnd
+
+    if (gap > 0) {
+      totalGap += gap
+    }
+  }
+
+  return totalGap
+}
+
 export function accumulateTime(entries: TimeEntry[]): AccumulatedTime {
   // sum by category
   const byCategory = _(entries)
