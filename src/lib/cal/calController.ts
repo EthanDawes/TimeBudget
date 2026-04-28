@@ -3,17 +3,42 @@ import { db } from "$lib/db"
 
 const GCAL_API = "https://www.googleapis.com/calendar/v3"
 const TOKEN_KEY = "gcal_access_token"
+const TOKEN_EXPIRY_KEY = "gcal_token_expiry"
+const CLIENT_ID_KEY = "gcal_client_id"
 
 export function getAccessToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
 
-export function setAccessToken(token: string) {
+export function setAccessToken(token: string, expiresIn?: number) {
   localStorage.setItem(TOKEN_KEY, token)
+  if (expiresIn != null) {
+    // Store expiry with a 60-second buffer so we refresh before it actually expires
+    const expiry = Date.now() + (expiresIn - 60) * 1000
+    localStorage.setItem(TOKEN_EXPIRY_KEY, String(expiry))
+  }
+}
+
+export function isTokenExpired(): boolean {
+  const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY)
+  // If no expiry stored (e.g. token from before expiry tracking was added),
+  // treat as expired so we attempt a silent refresh to get a fresh token.
+  if (!expiry) return !!getAccessToken()
+  return Date.now() > parseInt(expiry)
 }
 
 export function clearAccessToken() {
   localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(TOKEN_EXPIRY_KEY)
+  localStorage.removeItem(CLIENT_ID_KEY)
+}
+
+export function setClientId(clientId: string) {
+  localStorage.setItem(CLIENT_ID_KEY, clientId)
+}
+
+export function getClientId(): string | null {
+  return localStorage.getItem(CLIENT_ID_KEY)
 }
 
 export function isConnected(): boolean {
@@ -30,7 +55,8 @@ export function connectWithGoogle(clientId: string): Promise<string> {
         if (response.error) {
           reject(new Error(response.error))
         } else {
-          setAccessToken(response.access_token)
+          setClientId(clientId)
+          setAccessToken(response.access_token, response.expires_in)
           resolve(response.access_token)
         }
       },
@@ -39,9 +65,50 @@ export function connectWithGoogle(clientId: string): Promise<string> {
   })
 }
 
-export async function getAllCalendars(): Promise<any[]> {
+/**
+ * Silently refresh the access token using the stored client ID.
+ * Uses prompt:"" so Google will not show any UI if the user already granted consent.
+ */
+export function silentlyRefreshToken(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const clientId = getClientId()
+    if (!clientId) {
+      reject(new Error("No client ID stored; cannot refresh token silently"))
+      return
+    }
+    try {
+      const client = (window as any).google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: "https://www.googleapis.com/auth/calendar.readonly",
+        callback: (response: any) => {
+          if (response.error) {
+            reject(new Error(`Token refresh failed: ${response.error}`))
+          } else {
+            setAccessToken(response.access_token, response.expires_in)
+            resolve(response.access_token)
+          }
+        },
+      })
+      client.requestAccessToken({ prompt: "" })
+    } catch (e) {
+      reject(e)
+    }
+  })
+}
+
+/**
+ * Returns a valid access token, refreshing silently if the current one is expired.
+ * Throws if not authenticated or if the silent refresh fails.
+ */
+export async function getValidToken(): Promise<string> {
   const token = getAccessToken()
   if (!token) throw new Error("Not authenticated with Google")
+  if (!isTokenExpired()) return token
+  return silentlyRefreshToken()
+}
+
+export async function getAllCalendars(): Promise<any[]> {
+  const token = await getValidToken()
 
   const headers = { Authorization: `Bearer ${token}` }
 
@@ -54,8 +121,7 @@ export async function getAllCalendars(): Promise<any[]> {
 
 /** Returns all events happening this week from all calendars */
 export async function getAllEvents(): Promise<any[]> {
-  const token = getAccessToken()
-  if (!token) throw new Error("Not authenticated with Google")
+  const token = await getValidToken()
 
   const weekStartMs = getWeekStart() / MILLISECOND
   const weekEndMs = weekStartMs + (7 * DAY) / MILLISECOND
