@@ -76,7 +76,7 @@
   let weeklyGapTime = $derived.by(() => {
     const weekStart = getWeekStart()
     const entries = ($timeEntries ?? []).filter((e) => e.timestampStart >= weekStart)
-    return calculateGapTime(entries)
+    return calculateGapTime(entries, getWeekStart())
   })
 
   $effect(() => {

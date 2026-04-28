@@ -70,12 +70,13 @@ export async function activeTimers() {
 
 // Calculate the total time gaps between consecutive time entries.
 // Gaps (periods when nothing was being tracked) count as unallocated time spent.
-export function calculateGapTime(entries: TimeEntry[]): number {
+// TrackingStart is the time to start from as a minute timestamp in case the user does not have a starting time entry
+export function calculateGapTime(entries: TimeEntry[], trackingStart: number): number {
   // Sort by start time
   const sorted = [
     {
       id: getWeekId(),
-      timestampStart: getWeekStart(),
+      timestampStart: trackingStart,
       duration: 0,
       category: "",
       subcategory: "",
