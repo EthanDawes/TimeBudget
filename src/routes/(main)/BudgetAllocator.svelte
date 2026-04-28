@@ -430,7 +430,11 @@
 </script>
 
 {#if showReallocationMode}
-  <div class="fixed top-0 right-0 left-0 z-50 border-b bg-white p-4 shadow-lg">
+  <div
+    class="fixed top-0 right-0 left-0 z-50 border-b bg-white p-4 shadow-lg"
+    style="width: calc(90% - 200px)"
+  >
+    <!-- TODO: less jank width method -->
     <div class="mx-auto max-w-4xl">
       <div class="mb-4 flex items-center justify-between">
         <h3 class="text-lg font-semibold">Rebudget Time</h3>
@@ -502,7 +506,7 @@
   </div>
 {/if}
 
-<div class="flex flex-col gap-5 {showReallocationMode ? 'mt-32' : ''}">
+<div class="flex flex-col gap-5">
   {#each showReallocationMode ? previewBudget : budget as category}
     {@const categoryName = category.name}
     {@const categoryAvailable = getAvailableTime(
