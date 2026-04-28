@@ -72,7 +72,26 @@ export async function activeTimers() {
 // Gaps (periods when nothing was being tracked) count as unallocated time spent.
 export function calculateGapTime(entries: TimeEntry[]): number {
   // Sort by start time
-  const sorted = [...entries].sort((a, b) => a.timestampStart - b.timestampStart)
+  const sorted = [
+    {
+      id: getWeekId(),
+      timestampStart: getWeekStart(),
+      duration: 0,
+      category: "",
+      subcategory: "",
+    } satisfies TimeEntry,
+    ...entries,
+  ].sort((a, b) => a.timestampStart - b.timestampStart)
+
+  if (sorted.at(-1)!.duration !== undefined) {
+    sorted.push({
+      id: getWeekId(),
+      timestampStart: nowMinutes(),
+      duration: 0,
+      category: "",
+      subcategory: "",
+    } satisfies TimeEntry)
+  }
 
   let totalGap = 0
 
@@ -91,6 +110,7 @@ export function calculateGapTime(entries: TimeEntry[]): number {
     }
   }
 
+  console.log("Gap:", fmtDuration(totalGap))
   return totalGap
 }
 
@@ -366,10 +386,7 @@ export async function splitTime(splitEntries: SplitEntry[]): Promise<void> {
 
     let duration: number | undefined
 
-    if (entry.isConcurrent && entry.endTime) {
-      // Concurrent task with explicit end time
-      duration = entry.endTime - entry.startTime
-    } else if (!entry.isConcurrent && nextEntry) {
+    if (nextEntry) {
       // Sequential task - ends when next task starts
       duration = nextEntry.startTime - entry.startTime
     } else if (i === splitEntries.length - 1) {
