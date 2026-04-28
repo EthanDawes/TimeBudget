@@ -31,6 +31,7 @@
   } from "$lib/time"
   import { ceilTo } from "$lib"
   import { onDestroy } from "svelte"
+  import { derived } from "svelte/store"
 
   let { eventChannel, selectedDay }: { eventChannel: EventTarget; selectedDay: number } = $props()
 
@@ -70,14 +71,16 @@
 
   // Temp insights, see which are useful
   let schedule = liveQuery(() => db.schedule.toArray())
-  let timeEntries = liveQuery(() => db.timeEntries.toArray())
+  let _timeEntries = liveQuery(() =>
+    db.timeEntries
+      .where("timestampStart")
+      .between(getWeekStart(), getWeekStart() + WEEK) // Upper bound is useful if looking back in time
+      .toArray(),
+  )
+  let timeEntries = $derived($_timeEntries ?? [])
 
   // Gap time: periods between consecutive time entries with no task running count as unallocated
-  let weeklyGapTime = $derived.by(() => {
-    const weekStart = getWeekStart()
-    const entries = ($timeEntries ?? []).filter((e) => e.timestampStart >= weekStart)
-    return calculateGapTime(entries, getWeekStart())
-  })
+  let weeklyGapTime = $derived(calculateGapTime(timeEntries, getWeekStart()))
 
   $effect(() => {
     if (reallocationAmount > maxReallocationAmount) reallocationAmount = maxReallocationAmount
@@ -591,7 +594,7 @@
           </LabeledProgress>
           <div class="mt-[-6px] mb-1.5">
             pace: {fmtDuration(
-              ($timeEntries ?? [])
+              timeEntries
                 .filter(
                   (ev) =>
                     ev.category === categoryName &&
@@ -612,7 +615,7 @@
             scheduled: {fmtDuration(subcategoryScheduled)}<br />
             {#each Array.from({ length: 7 }) as _, idx}
               {#if idx < shiftWeekday(new Date().getDay())}
-                {@const d = ($timeEntries ?? [])
+                {@const d = timeEntries
                   .filter(
                     (ev) =>
                       ev.category === categoryName &&
