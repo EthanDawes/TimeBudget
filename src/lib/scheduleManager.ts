@@ -48,7 +48,7 @@ export async function refreshEvents() {
     })
   }
   await db.metadata.put({ key: "calIdCatMap", value: usedMappings })
-  db.transaction('rw', db.schedule, () => {
+  db.transaction('rw', db.schedule, async () => {
       await db.schedule.where("calId").notEqual("").delete()
       await db.schedule.bulkPut(newEvents)
   })
