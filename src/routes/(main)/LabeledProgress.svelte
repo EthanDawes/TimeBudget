@@ -9,6 +9,7 @@
     budget: number
     style?: string
     onclick?: MouseEventHandler<HTMLDivElement>
+    oncontextmenu?: MouseEventHandler<HTMLDivElement>
     // Multi-bar mode: provide totalCategorySpillover to activate.
     // categorySpilloverForThis: yellow amount for this subcategory (proportionally allocated by parent).
     // remainingCategorySpillover: global remaining pool (extends bar as gray in yellow region).
@@ -26,6 +27,7 @@
     budget,
     style = "",
     onclick,
+    oncontextmenu,
     totalCategorySpillover,
     categorySpilloverForThis = 0,
     remainingCategorySpillover = 0,
@@ -93,7 +95,12 @@
   )
 </script>
 
-<div class={"relative mb-1.25 w-full " + style} {onclick} role={onclick ? "button" : undefined}>
+<div
+  class={"relative mb-1.25 w-full " + style}
+  {onclick}
+  {oncontextmenu}
+  role={onclick ? "button" : undefined}
+>
   <div class="h-8 w-full overflow-hidden rounded-md bg-gray-200">
     <div class="flex h-full">
       <div

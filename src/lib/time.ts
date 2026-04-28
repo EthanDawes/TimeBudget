@@ -15,9 +15,9 @@ export const daysOfWeek = [
   "Sunday",
 ]
 
-export function fmtDuration(minutes: number) {
+export function fmtDuration(minutes: number, explicitPositive = false) {
   minutes = Math.round(minutes) // Round now instead of later to avoid weird "4h 60m"
-  const sign = minutes < 0 ? "-" : ""
+  const sign = minutes < 0 ? "-" : explicitPositive ? "+" : ""
   const abs = Math.abs(minutes)
   const hours = Math.floor(abs / HOUR)
   const remaining = abs % HOUR

@@ -31,7 +31,6 @@
   } from "$lib/time"
   import { ceilTo } from "$lib"
   import { onDestroy } from "svelte"
-  import { derived } from "svelte/store"
 
   let { eventChannel, selectedDay }: { eventChannel: EventTarget; selectedDay: number } = $props()
 
@@ -70,7 +69,6 @@
   let reallocationAmountText = $state("")
 
   // Temp insights, see which are useful
-  let schedule = liveQuery(() => db.schedule.toArray())
   let _timeEntries = liveQuery(() =>
     db.timeEntries
       .where("timestampStart")
@@ -384,6 +382,51 @@
       return budget
     }
   })
+
+  async function handleContextClick(categoryName: string, subcategoryName: string | null) {
+    const labels = ["M", "T", "W", "R", "F", "S", "J"]
+    const today = shiftWeekday(new Date().getDay())
+
+    const spentDaily = labels.map((_, idx) => {
+      if (idx > today) return 0
+      // TODO: use WIP timeEntries (unfinished timeEntries count assuming end now)
+      const d = timeEntries
+        .filter(
+          (ev) =>
+            ev.category === categoryName &&
+            ev.subcategory === subcategoryName &&
+            shiftWeekday(new Date(ev.timestampStart / MILLISECOND).getDay()) === idx,
+        )
+        .reduce((acc, ev) => acc + (ev?.duration ?? 0), 0)
+
+      return Math.max(0, d)
+    })
+
+    const schedule = await db.schedule.toArray()
+    const budgetedDaily = labels.map((_, idx) => {
+      const todaySchedule = schedule.filter(
+        (ev) => ev.cat === categoryName && ev.subcat === subcategoryName && ev.day === idx,
+      )
+
+      const d = todaySchedule.reduce((acc, ev) => acc + (ev?.duration ?? 0), 0)
+
+      return Math.max(0, d)
+      // todaySchedule.map((ev) => ev.name ?? ev.subcat).join(", ")})  // If I wanted a list of all events
+    })
+
+    const scheduled = labels.map(
+      (day, idx) => `Scheduled ${day} ${fmtDuration(budgetedDaily[idx])}`,
+    )
+
+    const spent = labels
+      .slice(0, today + 1)
+      .map(
+        (day, idx) =>
+          `Spent ${day} ${fmtDuration(spentDaily[idx])} / ${fmtDuration(budgetedDaily[idx])} ${fmtDuration((budgetedDaily[idx] - spentDaily[idx]) * -1, true)}`,
+      )
+
+    alert([...scheduled, ...spent].join("\n"))
+  }
 </script>
 
 {#if showReallocationMode}
@@ -584,6 +627,10 @@
                 : "cursor-pointer"
               : "cursor-pointer"}
             onclick={() => handleCategoryClick(categoryName, subcategoryName)}
+            oncontextmenu={(ev) => {
+              ev.preventDefault()
+              handleContextClick(categoryName, subcategoryName)
+            }}
           >
             {#if isSourceSubcategory}
               🔵
@@ -592,57 +639,6 @@
             {/if}
             {subcategoryName}
           </LabeledProgress>
-          <div class="mt-[-6px] mb-1.5">
-            pace: {fmtDuration(
-              timeEntries
-                .filter(
-                  (ev) =>
-                    ev.category === categoryName &&
-                    ev.subcategory === subcategoryName &&
-                    shiftWeekday(new Date(ev.timestampStart / MILLISECOND).getDay()) <
-                      shiftWeekday(new Date().getDay()),
-                )
-                .reduce((acc, ev) => acc + (ev?.duration ?? 0), 0) -
-                ($schedule ?? [])
-                  .filter(
-                    (ev) =>
-                      ev.day < shiftWeekday(new Date().getDay()) &&
-                      ev.cat === categoryName &&
-                      ev.subcat === subcategoryName,
-                  )
-                  .reduce((acc, ev) => acc + (ev?.duration ?? 0), 0),
-            )}<br />
-            scheduled: {fmtDuration(subcategoryScheduled)}<br />
-            {#each Array.from({ length: 7 }) as _, idx}
-              {#if idx < shiftWeekday(new Date().getDay())}
-                {@const d = timeEntries
-                  .filter(
-                    (ev) =>
-                      ev.category === categoryName &&
-                      ev.subcategory === subcategoryName &&
-                      shiftWeekday(new Date(ev.timestampStart / MILLISECOND).getDay()) === idx,
-                  )
-                  .reduce((acc, ev) => acc + (ev?.duration ?? 0), 0)}
-                {#if d > 0}
-                  {["M", "T", "W", "R", "F", "S", "J"][idx]}:
-                  {fmtDuration(d)}
-                  <br />
-                {/if}
-              {:else}
-                {@const todaySchedule = ($schedule ?? []).filter(
-                  (ev) =>
-                    ev.cat === categoryName && ev.subcat === subcategoryName && ev.day === idx,
-                )}
-                {@const d = todaySchedule.reduce((acc, ev) => acc + (ev?.duration ?? 0), 0)}
-                {#if d > 0}
-                  {["M", "T", "W", "R", "F", "S", "J"][idx]}:
-                  {fmtDuration(d)}
-                  ({todaySchedule.map((ev) => ev.name ?? ev.subcat).join(", ")})
-                  <br />
-                {/if}
-              {/if}
-            {/each}
-          </div>
         </div>
       {/each}
     </div>
