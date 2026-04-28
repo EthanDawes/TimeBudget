@@ -22,7 +22,6 @@ export async function refreshEvents() {
       - look up if it already has a category assigned to its event ID/ recurrence ID. If it does, copy that mapping to a new id: category mapping that contains only rules that were used in this current refresh cycle (this will clean out mappings for one off events in prior weeks. It will erroneously delete mappings where I have a week off like break, but this is inevitable without more complex logic)
       - add the new event to the database
  */
-  await db.schedule.where("calId").notEqual("").delete()
   const idCatMapping = ((await db.metadata.get("calIdCatMap"))?.value || {}) as CalCatMap
   const usedMappings: CalCatMap = {}
   const newEvents: Omit<Schedule, "id">[] = []
@@ -49,5 +48,8 @@ export async function refreshEvents() {
     })
   }
   await db.metadata.put({ key: "calIdCatMap", value: usedMappings })
-  await db.schedule.bulkPut(newEvents)
+  db.transaction('rw', db.schedule, () => {
+      await db.schedule.where("calId").notEqual("").delete()
+      await db.schedule.bulkPut(newEvents)
+  })
 }
