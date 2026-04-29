@@ -4,7 +4,7 @@
   import { pwaInfo } from "virtual:pwa-info"
   import { pwaAssetsHead } from "virtual:pwa-assets/head"
   import { onMount, onDestroy } from "svelte"
-  import { isConnected } from "$lib/cal/calController"
+  import { isConnected, scheduleTokenRefresh } from "$lib/cal/calController"
   import { refreshEvents } from "$lib/scheduleManager"
 
   const SYNC_INTERVAL_MS = 30 * 60 * 1000 // 30 minutes
@@ -31,6 +31,11 @@
         },
       })
     }
+
+    // Bootstrap the proactive token refresh cycle for any token already stored from a
+    // previous session. setAccessToken handles scheduling after each new token, so we
+    // only need this call once on startup.
+    scheduleTokenRefresh()
 
     const sync = async () => {
       if (!isConnected() || isSyncing) return

@@ -5,6 +5,12 @@ const GCAL_API = "https://www.googleapis.com/calendar/v3"
 const TOKEN_KEY = "gcal_access_token"
 const TOKEN_EXPIRY_KEY = "gcal_token_expiry"
 const CLIENT_ID_KEY = "gcal_client_id"
+/** Refresh this many ms before the stored expiry to give the request time to complete. */
+const PROACTIVE_REFRESH_BUFFER_MS = 5 * 60 * 1000
+/** Cap the timer so it stays within the 32-bit setTimeout limit (~24.8 days). */
+const MAX_TIMER_MS = 60 * 60 * 1000
+
+let _tokenRefreshTimer: ReturnType<typeof setTimeout> | undefined
 
 export function getAccessToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
@@ -17,6 +23,7 @@ export function setAccessToken(token: string, expiresIn?: number) {
     const expiry = Date.now() + (expiresIn - 60) * 1000
     localStorage.setItem(TOKEN_EXPIRY_KEY, String(expiry))
   }
+  scheduleTokenRefresh()
 }
 
 export function isTokenExpired(): boolean {
@@ -28,9 +35,42 @@ export function isTokenExpired(): boolean {
 }
 
 export function clearAccessToken() {
+  if (_tokenRefreshTimer !== undefined) {
+    clearTimeout(_tokenRefreshTimer)
+    _tokenRefreshTimer = undefined
+  }
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(TOKEN_EXPIRY_KEY)
   localStorage.removeItem(CLIENT_ID_KEY)
+}
+
+/**
+ * Schedule a proactive silent token refresh just before the stored token expires.
+ * Call this on page load (to bootstrap the cycle for existing tokens) and after
+ * each token update (setAccessToken already does this automatically).
+ * The cycle is self-perpetuating: each successful silent refresh calls setAccessToken,
+ * which calls scheduleTokenRefresh again to queue the next refresh.
+ */
+export function scheduleTokenRefresh() {
+  if (_tokenRefreshTimer !== undefined) {
+    clearTimeout(_tokenRefreshTimer)
+    _tokenRefreshTimer = undefined
+  }
+  if (!getAccessToken()) return
+  const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY)
+  if (!expiry) return
+  const delay = Math.min(
+    MAX_TIMER_MS,
+    Math.max(0, parseInt(expiry) - Date.now() - PROACTIVE_REFRESH_BUFFER_MS),
+  )
+  _tokenRefreshTimer = setTimeout(async () => {
+    _tokenRefreshTimer = undefined
+    try {
+      await silentlyRefreshToken()
+    } catch (e) {
+      console.warn("Proactive token refresh failed:", e)
+    }
+  }, delay)
 }
 
 export function setClientId(clientId: string) {
