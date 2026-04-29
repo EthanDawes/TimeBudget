@@ -14,7 +14,8 @@ export default defineConfig({
       manifest: {
         name: "Time Budget",
         description: "Budget time like money",
-        theme_color: "#ffffff",
+        background_color: "#fbf9fa",
+        theme_color: "#fbf9fa",
         icons: [
           {
             src: "pwa-64x64.png",
