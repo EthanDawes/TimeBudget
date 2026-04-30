@@ -322,32 +322,16 @@
     }
   }
 
-  function updateAmountFromText() {
+  $effect(() => {
     try {
-      const parsed = parseDuration(reallocationAmountText)
-      reallocationAmount = parsed
+      reallocationAmount = parseDuration(reallocationAmountText)
     } catch {
       // Invalid format, keep current amount
     }
-  }
-
-  function updateTextFromAmount() {
-    const hours = Math.floor(reallocationAmount / 60)
-    const minutes = reallocationAmount % 60
-    let text = ""
-    if (hours > 0) text += hours + "h "
-    if (minutes > 0 || hours === 0) text += minutes + "m"
-    reallocationAmountText = text.trim()
-  }
-
-  // Update slider when text changes
-  $effect(() => {
-    updateAmountFromText()
   })
 
-  // Update text when slider changes
   $effect(() => {
-    updateTextFromAmount()
+    reallocationAmountText = fmtDuration(reallocationAmount)
   })
 
   // Calculate max slider value based on source selection
@@ -382,6 +366,14 @@
       return budget
     }
   })
+
+  let activeBudget = $derived(showReallocationMode ? previewBudget : budget)
+  let unallocatedSpent = $derived(
+    calculateOverage(activeBudget, effectiveAccumulatedTime) + weeklyGapTime,
+  )
+  let remainingUnallocated = $derived(
+    Math.max(0, unallocatedTime - (unallocatedSpent + unallocatedScheduledTime)),
+  )
 
   async function handleContextClick(categoryName: string, subcategoryName: string | null) {
     const labels = ["M", "T", "W", "R", "F", "S", "J"]
@@ -507,7 +499,7 @@
 {/if}
 
 <div class="flex flex-col gap-5">
-  {#each showReallocationMode ? previewBudget : budget as category}
+  {#each activeBudget as category}
     {@const categoryName = category.name}
     {@const categoryAvailable = getAvailableTime(
       budget,
@@ -536,14 +528,6 @@
       0,
       totalCategorySpillover - totalSubcategoryOverage,
     )}
-    {@const unallocatedOverage =
-      calculateOverage(showReallocationMode ? previewBudget : budget, effectiveAccumulatedTime) +
-      weeklyGapTime}
-    {@const remainingUnallocated = Math.max(
-      0,
-      unallocatedTime - (unallocatedOverage + unallocatedScheduledTime),
-    )}
-
     <div
       class="block {isSourceCategory || isTargetCategory || hasSelectedSubcategory
         ? 'rounded border bg-white p-2'
@@ -596,18 +580,13 @@
           targetSelection?.subcategory === subcategoryName}
 
         {@const isDisabled = showReallocationMode && !sourceSelection && subcategoryAvailable <= 0}
-        {@const subcategoryOverage = Math.max(
-          0,
-          (effectiveAccumulatedTime[categoryName + subcategoryName] ?? 0) +
-            (scheduledTime[categoryName + subcategoryName] ?? 0) -
-            subcategoryBudget,
-        )}
+        {@const subcategorySpent = effectiveAccumulatedTime[categoryName + subcategoryName] ?? 0}
+        {@const subcategoryScheduled = scheduledTime[categoryName + subcategoryName] ?? 0}
+        {@const subcategoryOverage = Math.max(0, subcategorySpent + subcategoryScheduled - subcategoryBudget)}
         {@const categorySpilloverForThis =
           totalSubcategoryOverage > 0
             ? (subcategoryOverage / totalSubcategoryOverage) * poolAllocated
             : 0}
-        {@const subcategorySpent = effectiveAccumulatedTime[categoryName + subcategoryName] ?? 0}
-        {@const subcategoryScheduled = scheduledTime[categoryName + subcategoryName] ?? 0}
 
         <div
           class="{isSourceSubcategory || isTargetSubcategory
@@ -653,10 +632,6 @@
     {@const isTargetUnallocated = targetSelection?.category === null}
     {@const isUnallocatedDisabled =
       showReallocationMode && !sourceSelection && unallocatedAvailable <= 0}
-
-    {@const unallocatedSpent =
-      calculateOverage(showReallocationMode ? previewBudget : budget, effectiveAccumulatedTime) +
-      weeklyGapTime}
     <div class={isSourceUnallocated || isTargetUnallocated ? "rounded border bg-white p-2" : ""}>
       <LabeledProgress
         spent={unallocatedSpent + unallocatedScheduledTime}
