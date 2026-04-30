@@ -536,10 +536,9 @@
       0,
       totalCategorySpillover - totalSubcategoryOverage,
     )}
-    {@const unallocatedOverage = calculateOverage(
-      showReallocationMode ? previewBudget : budget,
-      effectiveAccumulatedTime,
-    )}
+    {@const unallocatedOverage =
+      calculateOverage(showReallocationMode ? previewBudget : budget, effectiveAccumulatedTime) +
+      weeklyGapTime}
     {@const remainingUnallocated = Math.max(
       0,
       unallocatedTime - (unallocatedOverage + unallocatedScheduledTime),
@@ -655,7 +654,9 @@
     {@const isUnallocatedDisabled =
       showReallocationMode && !sourceSelection && unallocatedAvailable <= 0}
 
-    {@const unallocatedSpent = calculateOverage(budget, effectiveAccumulatedTime) + weeklyGapTime}
+    {@const unallocatedSpent =
+      calculateOverage(showReallocationMode ? previewBudget : budget, effectiveAccumulatedTime) +
+      weeklyGapTime}
     <div class={isSourceUnallocated || isTargetUnallocated ? "rounded border bg-white p-2" : ""}>
       <LabeledProgress
         spent={unallocatedSpent + unallocatedScheduledTime}
