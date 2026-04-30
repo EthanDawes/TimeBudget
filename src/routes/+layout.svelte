@@ -4,13 +4,6 @@
   import { pwaInfo } from "virtual:pwa-info"
   import { pwaAssetsHead } from "virtual:pwa-assets/head"
   import { onMount, onDestroy } from "svelte"
-  import { isConnected } from "$lib/cal/calController"
-  import { refreshEvents } from "$lib/scheduleManager"
-
-  const SYNC_INTERVAL_MS = 30 * 60 * 1000 // 30 minutes
-
-  let syncInterval: ReturnType<typeof setInterval> | undefined
-  let isSyncing = false
 
   // Adapted from https://vite-pwa-org.netlify.app/frameworks/sveltekit.html
   onMount(async () => {
@@ -31,25 +24,6 @@
         },
       })
     }
-
-    const sync = async () => {
-      if (!isConnected() || isSyncing) return
-      isSyncing = true
-      try {
-        await refreshEvents()
-      } catch (e) {
-        console.warn("Periodic calendar sync failed:", e)
-      } finally {
-        isSyncing = false
-      }
-    }
-    sync()
-
-    syncInterval = setInterval(sync, SYNC_INTERVAL_MS)
-  })
-
-  onDestroy(() => {
-    if (syncInterval) clearInterval(syncInterval)
   })
 
   const { children } = $props()

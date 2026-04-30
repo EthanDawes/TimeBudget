@@ -11,6 +11,8 @@
     saveWeeklyBudgetConfig,
   } from "$lib/budgetManager.js"
   import { liveQuery } from "dexie"
+  import { isConnected } from "$lib/cal/calController"
+  import { refreshEvents } from "$lib/scheduleManager"
 
   let {
     eventChannel,
@@ -104,6 +106,19 @@
     await db.metadata.put({ key: "calIdCatMap", value: calCatMap })
     await eventSelector.modify({ cat, subcat })
   }
+
+  let isSyncing = $state(false)
+  const sync = async () => {
+    if (!isConnected() || isSyncing) return
+    isSyncing = true
+    try {
+      await refreshEvents()
+    } catch (e) {
+      console.warn("Periodic calendar sync failed:", e)
+    } finally {
+      isSyncing = false
+    }
+  }
 </script>
 
 <CalGrid
@@ -111,6 +126,10 @@
   currentWeekStart={getWeekStart()}
   onHeaderClick={(weekdayIdx) => (selectedDay = weekdayIdx)}
 >
+  {#snippet corner()}
+    <button class="h-full w-full" class:animate-spin={isSyncing} onclick={sync}> 🔄️ </button>
+  {/snippet}
+
   {#each events as event}
     <CalEvent
       startHour={event.start}

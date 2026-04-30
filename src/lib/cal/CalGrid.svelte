@@ -18,6 +18,7 @@
     tableHeight: string
     onHeaderClick?: (weekdayIdx: number) => void
     children?: Snippet
+    corner?: Snippet
   }
 
   let {
@@ -26,6 +27,7 @@
     tableHeight,
     onHeaderClick,
     children,
+    corner,
   }: CalGridProps = $props()
 
   setContext("tableHeight", tableHeight)
@@ -78,7 +80,9 @@
   <table class="w-full table-fixed border-collapse" style:height={tableHeight}>
     <thead class="sticky top-0 z-50 bg-white">
       <tr style:height={headerHeight}>
-        <th class="w-[50px] max-w-[50px] min-w-[50px] border border-gray-300"></th>
+        <th class="w-[50px] max-w-[50px] min-w-[50px] border border-gray-300">
+          {@render corner?.()}
+        </th>
         {#each days as day, idx}
           <th
             class="cursor-pointer truncate border border-gray-300 px-1 hover:bg-gray-100"
