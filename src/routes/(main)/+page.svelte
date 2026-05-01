@@ -35,5 +35,8 @@
     <div class="overflow-x-clip overflow-y-auto">
       <BudgetAllocator {eventChannel} {selectedDay} />
     </div>
+    <div class="overflow-x-clip overflow-y-auto">
+      <Tracker />
+    </div>
   </div>
 {/if}

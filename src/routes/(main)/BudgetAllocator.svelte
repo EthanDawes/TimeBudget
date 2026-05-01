@@ -422,11 +422,11 @@
 </script>
 
 {#if showReallocationMode}
+  <!-- TODO: less jank width method -->
   <div
     class="fixed top-0 right-0 left-0 z-50 border-b bg-white p-4 shadow-lg"
-    style="width: calc(90% - 200px)"
+    style="width: calc(90% - 400px)"
   >
-    <!-- TODO: less jank width method -->
     <div class="mx-auto max-w-4xl">
       <div class="mb-4 flex items-center justify-between">
         <h3 class="text-lg font-semibold">Rebudget Time</h3>
@@ -582,7 +582,10 @@
         {@const isDisabled = showReallocationMode && !sourceSelection && subcategoryAvailable <= 0}
         {@const subcategorySpent = effectiveAccumulatedTime[categoryName + subcategoryName] ?? 0}
         {@const subcategoryScheduled = scheduledTime[categoryName + subcategoryName] ?? 0}
-        {@const subcategoryOverage = Math.max(0, subcategorySpent + subcategoryScheduled - subcategoryBudget)}
+        {@const subcategoryOverage = Math.max(
+          0,
+          subcategorySpent + subcategoryScheduled - subcategoryBudget,
+        )}
         {@const categorySpilloverForThis =
           totalSubcategoryOverage > 0
             ? (subcategoryOverage / totalSubcategoryOverage) * poolAllocated
