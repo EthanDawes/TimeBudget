@@ -154,7 +154,7 @@
 
 <dialog
   bind:this={modal}
-  class="modal mx-auto mt-4 max-w-4xl rounded-lg p-3 sm:p-6"
+  class="modal mx-auto mt-4 max-w-lg rounded-lg p-3 sm:p-6"
   onclick={(e) => e.target === modal && closeModal()}
 >
   <div class="modal-content">
