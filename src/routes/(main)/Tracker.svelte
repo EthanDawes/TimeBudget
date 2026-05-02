@@ -177,13 +177,15 @@
       </div>
 
       {#each cat.subcategories as sub}
-        {#if budget[sub.name] > 0}
+        {#if budget[sub.name] > 0 || effectiveSpent[sub.name] > 0}
           <div>
             <!-- Don't ?? 0 to budget in style b/c if there is no budget, its bar shouldn't be shown. -->
             <LabeledProgress
               spent={effectiveSpent[sub.name] ?? 0}
               budget={budget[sub.name] ?? 0}
-              style={(budget[sub.name] - (effectiveSpent[sub.name] ?? 0) > -30) ? "cursor-pointer" : "opacity-50 pointer-events-none"}
+              style={budget[sub.name] - (effectiveSpent[sub.name] ?? 0) > 0
+                ? "cursor-pointer"
+                : "opacity-50 pointer-events-none"}
               onclick={() => handleCategoryClick(cat.name, sub.name)}
             >
               {@const isRunning = currentTasks.some(
