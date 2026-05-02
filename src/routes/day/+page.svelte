@@ -254,6 +254,7 @@
           duration={entry.duration / HOUR}
           color={getSubcategoryColor(entry.category, entry.subcategory)}
           onclick={() => filterSubcategory(entry.subcategory)}
+          tooltip={entry.subcategory}
         >
           <div class="truncate font-semibold">{entry.subcategory}</div>
           <div class="truncate text-xs opacity-75">{entry.category}</div>

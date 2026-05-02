@@ -139,6 +139,7 @@
       onclick={event.calId
         ? handleEventClick.bind(null, event)
         : handleScheduleClick.bind(null, event)}
+      tooltip={event.name || event.subcat}
     >
       {event.name || event.subcat}
     </CalEvent>

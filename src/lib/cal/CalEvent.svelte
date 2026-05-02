@@ -11,10 +11,11 @@
     dayIndex: number
     color: string
     children?: Snippet<[]>
+    tooltip?: string
     onclick?: (e: MouseEvent) => void
   }
 
-  let { startHour, duration, dayIndex, color, children, onclick }: EventProps = $props()
+  let { startHour, duration, dayIndex, color, children, onclick, tooltip }: EventProps = $props()
 
   const tableHeight = getContext("tableHeight")
   const cellHeight = `((${tableHeight} - ${headerHeight}) / 24)`
@@ -32,6 +33,7 @@
   style:width={`calc(${cellWidth})`}
   style:height={`calc(${cellHeight} * ${duration})`}
   {onclick}
+  title={tooltip}
 >
   {@render children?.()}
 </div>
