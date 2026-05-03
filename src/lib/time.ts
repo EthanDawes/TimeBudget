@@ -73,6 +73,10 @@ export function parseDuration(timeStr: string): number {
     totalMinutes += parseInt(minutesMatch[1])
   }
 
+  // Try parsing alternate format h:m
+  const [h, m] = trimmed.split(":").map(Number)
+  if (!isNaN(h) && !isNaN(m)) totalMinutes += h * 60 + m
+
   // sign
   if (trimmed[0] === "-") {
     totalMinutes *= -1

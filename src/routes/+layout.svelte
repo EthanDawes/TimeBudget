@@ -3,7 +3,8 @@
   // import favicon from "$lib/assets/icon.png"
   import { pwaInfo } from "virtual:pwa-info"
   import { pwaAssetsHead } from "virtual:pwa-assets/head"
-  import { onMount, onDestroy } from "svelte"
+  import { onMount } from "svelte"
+  import { fmtDuration, parseDuration } from "$lib/time"
 
   // Adapted from https://vite-pwa-org.netlify.app/frameworks/sveltekit.html
   onMount(async () => {
@@ -31,6 +32,16 @@
   // Adapted from https://github.com/vite-pwa/sveltekit/tree/de3bd8e20458e77409c0786996a2defd82e39530/examples/sveltekit-ts-assets-generator
   // Couldn't automaticly generate icons, so must manually
   const webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : "")
+
+  globalThis.calc = (expr: string) => {
+    // Replace all h:m with minute values
+    const normalized = expr.replace(/\d+:\d+/g, (d) => parseDuration(d))
+
+    // Evaluate safely (basic math only)
+    const result = Function(`"use strict"; return (${normalized})`)()
+
+    return [fmtDuration(Math.round(result)), result]
+  }
 </script>
 
 <svelte:head>
