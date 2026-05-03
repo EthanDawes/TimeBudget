@@ -88,7 +88,7 @@ export function parseDuration(timeStr: string): number {
 export function formatTimeFromMinutes(minutes: number): string {
   // Convert minutes-since-epoch to a Date object to get local time
   const date = new Date(minutes / MILLISECOND) // Convert minutes to milliseconds
-  const hours = date.getHours()
+  const hours = ((date.getHours() + 11) % 12) + 1
   const mins = date.getMinutes()
   return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`
 }
@@ -110,6 +110,10 @@ export function parseTimeToMinutes(timeText: string, baseDate: number = nowMinut
       0,
       0,
     )
+
+    if (targetDate < baseDateTime) {
+      targetDate.setHours(hours + 12)
+    }
 
     // Convert back to minutes-since-epoch
     return Math.floor(targetDate.getTime() * MILLISECOND)

@@ -1,7 +1,14 @@
 <script lang="ts">
   import CalEvent from "$lib/cal/CalEvent.svelte"
   import { db, type TimeEntry } from "$lib/db"
-  import { getWeekStart, MILLISECOND, HOUR, DAY } from "$lib/time"
+  import {
+    getWeekStart,
+    MILLISECOND,
+    HOUR,
+    DAY,
+    formatTimeFromMinutes,
+    fmtDuration,
+  } from "$lib/time"
   import CalGrid from "$lib/cal/CalGrid.svelte"
   import { getSubcategoryColor } from "$lib/cal/calUtil.svelte"
 
@@ -19,7 +26,7 @@
     if (!groupingMode) return timeEntries
 
     // Group entries by day, then by category, then by subcategory
-    const groupedByDay = new Map()
+    const groupedByDay = new Map<number, Map<string, Map<string, TimeEntry[]>>>()
 
     timeEntries.forEach((entry) => {
       if (!entry.duration) return
@@ -63,7 +70,7 @@
     })
 
     // Convert back to flat array with adjusted start times
-    const processedEntries = []
+    const processedEntries: TimeEntry[] = []
 
     for (const [dayKey, dayGroups] of groupedByDay) {
       let currentStartHour = 0 // Start stacking from midnight
@@ -244,6 +251,7 @@
       )}
       {@const dayStartMinutes = dayStartLocal.getTime() * MILLISECOND}
       {@const localStartHour = (entry.timestampStart - dayStartMinutes) / HOUR}
+      {@const tooltip = `${entry.subcategory} ${formatTimeFromMinutes(entry.timestampStart)}-${formatTimeFromMinutes(entry.timestampStart + entry.duration)} ${fmtDuration(entry.duration)}`}
 
       {#if filteredWeekday !== null}
         {@const timeDiff = currentWeekStart + filteredWeekday * DAY - entry.timestampStart}
@@ -254,7 +262,7 @@
           duration={entry.duration / HOUR}
           color={getSubcategoryColor(entry.category, entry.subcategory)}
           onclick={() => filterSubcategory(entry.subcategory)}
-          tooltip={entry.subcategory}
+          {tooltip}
         >
           <div class="truncate font-semibold">{entry.subcategory}</div>
           <div class="truncate text-xs opacity-75">{entry.category}</div>
@@ -280,7 +288,7 @@
           duration={entry.duration / HOUR}
           color={getSubcategoryColor(entry.category, entry.subcategory)}
           onclick={() => filterSubcategory(entry.subcategory)}
-          tooltip={entry.subcategory}
+          {tooltip}
         >
           <div class="truncate font-semibold">{entry.subcategory}</div>
           <div class="truncate text-xs opacity-75">{entry.category}</div>
