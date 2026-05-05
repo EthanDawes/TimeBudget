@@ -93,30 +93,40 @@ export function formatTimeFromMinutes(minutes: number): string {
   return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`
 }
 
-export function parseTimeToMinutes(timeText: string, baseDate: number = nowMinutes()): number {
+export function parseTimeToMinutes(
+  timeText: string,
+  baseDate: number = nowMinutes()
+): number {
   try {
-    const [hours, minutes] = timeText.split(":").map(Number)
+    const [h, m] = timeText.split(":").map(Number)
 
-    // Create a Date object from the baseDate to get the current day in local time
-    const baseDateTime = new Date(baseDate / MILLISECOND)
+    const base = new Date(baseDate / MILLISECOND)
 
-    // Create a new Date for the same day but with the specified time
-    const targetDate = new Date(
-      baseDateTime.getFullYear(),
-      baseDateTime.getMonth(),
-      baseDateTime.getDate(),
-      hours,
-      minutes,
-      0,
-      0,
-    )
+    const make = (dayOffset: number, hour: number) =>
+      new Date(
+        base.getFullYear(),
+        base.getMonth(),
+        base.getDate() + dayOffset,
+        hour,
+        m,
+        0,
+        0
+      ).getTime()
 
-    if (targetDate < baseDateTime) {
-      targetDate.setHours(hours + 12)
-    }
+    const hours12 = h % 12
 
-    // Convert back to minutes-since-epoch
-    return Math.floor(targetDate.getTime() * MILLISECOND)
+    const candidates = [
+      make(0, hours12),        // same day AM
+      make(0, hours12 + 12),   // same day PM
+      make(1, hours12),        // next day AM
+      make(1, hours12 + 12),   // next day PM
+    ]
+
+    const next = candidates
+      .filter(t => t > base.getTime())
+      .sort((a, b) => a - b)[0]
+
+    return Math.floor((next ?? base.getTime()) * MILLISECOND)
   } catch {
     return baseDate
   }
