@@ -76,10 +76,11 @@
     if (index === 0) return // First entry time is locked
 
     const entry = splitEntries[index]
+    const prevEntryStart = splitEntries[index - 1].startTime
     entry.startTimeText = timeText
 
     if (timeText.trim()) {
-      entry.startTime = parseTimeToMinutes(timeText)
+      entry.startTime = parseTimeToMinutes(timeText, prevEntryStart)
     }
   }
 
@@ -88,7 +89,7 @@
     entry.endTimeText = timeText
 
     if (timeText.trim()) {
-      entry.endTime = parseTimeToMinutes(timeText)
+      entry.endTime = parseTimeToMinutes(timeText, prevEntryStart)
     }
 
     // Update splitEntries to trigger reactivity
