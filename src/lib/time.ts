@@ -62,13 +62,13 @@ export function parseDuration(timeStr: string): number {
   let totalMinutes = 0
 
   // Match hours
-  const hoursMatch = trimmed.match(/(\d+)h/)
+  const hoursMatch = trimmed.match(/((?:\d+\.)*\d+)h/)
   if (hoursMatch) {
     totalMinutes += parseInt(hoursMatch[1]) * 60
   }
 
   // Match minutes
-  const minutesMatch = trimmed.match(/(\d+)m/)
+  const minutesMatch = trimmed.match(/((?:\d+\.)*\d+)m/)
   if (minutesMatch) {
     totalMinutes += parseInt(minutesMatch[1])
   }
