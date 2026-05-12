@@ -64,13 +64,13 @@ export function parseDuration(timeStr: string): number {
   // Match hours
   const hoursMatch = trimmed.match(/((?:\d+\.)*\d+)h/)
   if (hoursMatch) {
-    totalMinutes += parseInt(hoursMatch[1]) * 60
+    totalMinutes += parseFloat(hoursMatch[1]) * 60
   }
 
   // Match minutes
   const minutesMatch = trimmed.match(/((?:\d+\.)*\d+)m/)
   if (minutesMatch) {
-    totalMinutes += parseInt(minutesMatch[1])
+    totalMinutes += parseFloat(minutesMatch[1])
   }
 
   // Try parsing alternate format h:m
@@ -93,10 +93,7 @@ export function formatTimeFromMinutes(minutes: number): string {
   return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`
 }
 
-export function parseTimeToMinutes(
-  timeText: string,
-  baseDate: number = nowMinutes()
-): number {
+export function parseTimeToMinutes(timeText: string, baseDate: number = nowMinutes()): number {
   try {
     const [h, m] = timeText.split(":").map(Number)
 
@@ -110,21 +107,19 @@ export function parseTimeToMinutes(
         hour,
         m,
         0,
-        0
+        0,
       ).getTime()
 
     const hours12 = h % 12
 
     const candidates = [
-      make(0, hours12),        // same day AM
-      make(0, hours12 + 12),   // same day PM
-      make(1, hours12),        // next day AM
-      make(1, hours12 + 12),   // next day PM
+      make(0, hours12), // same day AM
+      make(0, hours12 + 12), // same day PM
+      make(1, hours12), // next day AM
+      make(1, hours12 + 12), // next day PM
     ]
 
-    const next = candidates
-      .filter(t => t > base.getTime())
-      .sort((a, b) => a - b)[0]
+    const next = candidates.filter((t) => t > base.getTime()).sort((a, b) => a - b)[0]
 
     return Math.floor((next ?? base.getTime()) * MILLISECOND)
   } catch {
