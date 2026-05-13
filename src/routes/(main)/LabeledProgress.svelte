@@ -132,7 +132,11 @@
       {@render children?.()}
     </div>
     <div class="flex-shrink-0">
-      {fmtDuration(labelRemaining)} / {fmtDuration(budget)}
+      {#if orangeAmount > 0}
+        +{fmtDuration(spent)} / {fmtDuration(labelRemaining)}
+      {:else}
+        {fmtDuration(labelRemaining)} / {fmtDuration(budget)}
+      {/if}
     </div>
   </div>
 </div>
