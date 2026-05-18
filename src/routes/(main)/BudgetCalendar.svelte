@@ -93,7 +93,7 @@
       const budgetSubcat = budgetCat?.subcategories.find((sc) => sc.name === subcat)
       if (budgetCat && budgetSubcat) {
         if (!budgetSubcat.total) budgetSubcat.time += event.duration
-        if (!budgetCat.total) budgetCat.time += event.duration
+        if (!budgetCat.total && !budgetSubcat.total) budgetCat.time += event.duration
       }
     }
     await saveWeeklyBudgetConfig(budget)
