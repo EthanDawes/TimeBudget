@@ -26,7 +26,7 @@ export async function refreshEvents() {
   const usedMappings: CalCatMap = {}
   const newEvents: Omit<Schedule, "id">[] = []
   for (const event of await getAllEvents()) {
-    if (event.transparency === "transparent") continue
+    if (event.transparency === "transparent" || !event.start.dateTime) continue
     const eventId: string = event.recurringEventId ?? event.id
     let mapping = idCatMapping[eventId]
     if (!mapping) {
