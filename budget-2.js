@@ -111,19 +111,19 @@ const budget = [
   ]),
   Category("Wellness", Plus(0), [
     Subcat("Eat", Spread(6.5, FREE, [everyday, 1])),
-    Subcat("Sleep", Spread(8 * DAILY, ROLLOVER, [everyday, 1])),
+    Subcat("Sleep", Total(8 * DAILY)),
     Subcat("Excercise", Spread(0.5 * DAILY, FREE, [everyday, 1])),
-    Subcat("Mindfullness", Total((10 / HOUR) * DAILY)),
+    Subcat("Mindfullness", Spread(((10 * MINUTE) / HOUR) * DAILY, FREE, [everyday, 1])),
     // Morning/evening routine accounted for in cal
     // `shower` is the only case where I might want the ability to create events that aren't in my cal, but later problem
-    Subcat("Chores", Plus((20 / HOUR) * (DAILY / 2) /* Shower */ + 2 /* misc */)),
+    Subcat("Chores", Plus((20 / HOUR) * (DAILY / 2) /* Shower */ + 2 /* misc */)), // TODO: time for laundry on weekend
   ]),
   Category("Curiosity", Total(15), [
     Subcat("Learning", Total(5)),
     Subcat("Programming", Total(5)),
     Subcat("Projects", Total(5)),
   ]),
-  Category("Relax", Total(5), [Subcat("Relax", Total(5))]),
+  Category("Relax", Total(5), [Subcat("Relax", Spread(5, ROLLOVER, [everyday, 1]))]),
 ]
 
 console.log(`You have scheduled ${totalWeekBudgetedTime / HOUR}/168 hours each week`)
