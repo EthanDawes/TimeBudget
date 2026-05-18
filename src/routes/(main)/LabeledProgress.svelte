@@ -133,7 +133,7 @@
     </div>
     <div class="flex-shrink-0">
       {#if orangeAmount > 0}
-        +{fmtDuration(spent)} / {fmtDuration(labelRemaining)}
+        {fmtDuration(labelRemaining)} / +{fmtDuration(spent)}
       {:else}
         {fmtDuration(labelRemaining)} / {fmtDuration(budget)}
       {/if}
