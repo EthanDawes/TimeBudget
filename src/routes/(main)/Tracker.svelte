@@ -131,6 +131,17 @@
       setState()
     })
   }
+
+  async function undoTrack() {
+    if (!confirm("Are you sure?")) return
+    const [last, secondLast] = await db.timeEntries
+      .orderBy("timestampStart")
+      .reverse()
+      .limit(2)
+      .primaryKeys()
+    db.timeEntries.delete(last)
+    db.timeEntries.update(secondLast, { duration: undefined })
+  }
 </script>
 
 {#if currentTasks.length > 0}
@@ -154,6 +165,7 @@
     {/each}
     <div class="flex justify-around">
       <button class="border" onclick={() => (showSplitTimeModal = true)}>Change tracking</button>
+      <button class="border" onclick={undoTrack}>Undo</button>
     </div>
   </div>
 {/if}
