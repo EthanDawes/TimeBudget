@@ -56,7 +56,7 @@
 
   let greenPct = $derived.by(() => {
     if (!isMultiBar || totalBarUnits === 0) {
-      if (budget === 0) return 100
+      if (budget === 0) return 0
       const pct = 10000 / singlePct
       return pct < 100 ? pct : singlePct
     }
