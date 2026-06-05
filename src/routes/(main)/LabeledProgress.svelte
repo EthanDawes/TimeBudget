@@ -56,7 +56,8 @@
 
   let greenPct = $derived.by(() => {
     if (!isMultiBar || totalBarUnits === 0) {
-      if (budget === 0) return 0
+      # Funky expression b/c bar should be full green if (no time budgeted and no time spent) but shoudn't display half & half (should be all yellow) if (no time budgeted and time spent)
+      if (budget === 0) return 100 * Number(spent === 0)
       const pct = 10000 / singlePct
       return pct < 100 ? pct : singlePct
     }
