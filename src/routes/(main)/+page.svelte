@@ -8,13 +8,16 @@
   const eventChannel = new EventTarget()
 
   let width = $state(-1)
+  let height = $state(-1)
   let selectedDay = $state(shiftWeekday(new Date().getDay()))
 
   onMount(() => {
     width = window.innerWidth
+    height = window.innerHeight
 
     window.addEventListener("resize", () => {
       width = window.innerWidth
+      height = window.innerHeight
     })
   })
 </script>
@@ -25,7 +28,7 @@
 
 {#if width == -1}
   <!-- No-op -->
-{:else if width < 768}
+{:else if width < height}
   <div class="min-h-dvh w-full bg-gray-50 p-2"><Tracker /></div>
 {:else}
   <div class="flex max-h-dvh w-full bg-gray-50">
