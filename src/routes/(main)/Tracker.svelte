@@ -46,7 +46,7 @@
         color: "bg-gray-400 dark:bg-gray-500",
         label: "Not Configured",
         description: "Not logged in. Log in from settings to enable cloud sync.",
-        animate: false
+        animate: false,
       }
     }
     if (!syncState) {
@@ -54,7 +54,7 @@
         color: "bg-gray-400",
         label: "Connecting",
         description: "Connecting to cloud...",
-        animate: false
+        animate: false,
       }
     }
     const { phase, error } = syncState
@@ -64,7 +64,7 @@
           color: "bg-emerald-500",
           label: "In Sync",
           description: "All changes synced to cloud",
-          animate: false
+          animate: false,
         }
       case "pushing":
       case "pulling":
@@ -72,42 +72,44 @@
           color: "bg-indigo-500",
           label: "Syncing",
           description: "Syncing changes with cloud...",
-          animate: true
+          animate: true,
         }
       case "initial":
         return {
           color: "bg-blue-500",
           label: "Initializing",
           description: "Initializing cloud sync...",
-          animate: true
+          animate: true,
         }
       case "not-in-sync":
         return {
           color: "bg-amber-500",
           label: "Pending Sync",
           description: "Changes pending sync (offline or paused)",
-          animate: false
+          animate: false,
         }
       case "offline":
         return {
           color: "bg-amber-500",
           label: "Offline",
           description: "Database is offline",
-          animate: false
+          animate: false,
         }
       case "error":
         return {
           color: "bg-rose-500",
           label: "Error",
-          description: error?.message ? `Sync error: ${error.message}` : "Sync encountered an error",
-          animate: false
+          description: error?.message
+            ? `Sync error: ${error.message}`
+            : "Sync encountered an error",
+          animate: false,
         }
       default:
         return {
           color: "bg-gray-400",
           label: syncState.status || "Disconnected",
           description: `Status: ${syncState.status || "unknown"}`,
-          animate: false
+          animate: false,
         }
     }
   })
@@ -241,15 +243,19 @@
           <button
             class="relative flex h-3.5 w-3.5 cursor-pointer items-center justify-center rounded-full transition-all duration-300 hover:scale-120 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
             onclick={handleSyncClick}
-            title={dbLoggedIn 
-              ? `Cloud Sync: ${syncInfo.label} (${syncInfo.description}). Click to force sync.` 
+            title={dbLoggedIn
+              ? `Cloud Sync: ${syncInfo.label} (${syncInfo.description}). Click to force sync.`
               : `Cloud Sync: ${syncInfo.description} Click to go to Settings.`}
             aria-label="Cloud sync status: {syncInfo.label}"
           >
             {#if syncInfo.animate}
-              <span class="absolute inline-flex h-full w-full animate-ping rounded-full {syncInfo.color} opacity-40"></span>
+              <span
+                class="absolute inline-flex h-full w-full animate-ping rounded-full {syncInfo.color} opacity-40"
+              ></span>
             {/if}
-            <span class="relative inline-flex h-2.5 w-2.5 rounded-full {syncInfo.color} transition-colors duration-500 shadow-[0_0_6px_rgba(0,0,0,0.1)]"></span>
+            <span
+              class="relative inline-flex h-2.5 w-2.5 rounded-full {syncInfo.color} shadow-[0_0_6px_rgba(0,0,0,0.1)] transition-colors duration-500"
+            ></span>
           </button>
 
           <button

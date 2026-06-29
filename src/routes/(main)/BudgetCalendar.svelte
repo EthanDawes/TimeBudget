@@ -150,20 +150,6 @@
     }
   })
 
-  async function promptAuthorize() {
-    if (isSyncing) return
-    isSyncing = true
-    try {
-      await connectWithGoogle(GOOGLE_CLIENT_ID)
-      await refreshEvents()
-      needsPrompt = false
-    } catch (e) {
-      console.error("Google Calendar authorization/refresh failed:", e)
-    } finally {
-      isSyncing = false
-    }
-  }
-
   const sync = async () => {
     if (!isConnected() || isSyncing) return
     isSyncing = true
@@ -179,54 +165,41 @@
   }
 </script>
 
-<div class="relative h-full w-full">
-  <div
-    class="h-full w-full transition-opacity duration-300"
-    class:opacity-50={needsPrompt}
-    class:pointer-events-none={needsPrompt}
+<div class="relative h-[200vh] w-full">
+  <CalGrid
+    tableHeight="200vh"
+    currentWeekStart={getWeekStart()}
+    onHeaderClick={(weekdayIdx) => (selectedDay = weekdayIdx)}
   >
-    <CalGrid
-      tableHeight="200vh"
-      currentWeekStart={getWeekStart()}
-      onHeaderClick={(weekdayIdx) => (selectedDay = weekdayIdx)}
-    >
-      {#snippet corner()}
-        <button class="h-full w-full" class:animate-spin={isSyncing} onclick={sync}> 🔄️ </button>
-      {/snippet}
+    {#snippet corner()}
+      <button class="h-full w-full" class:animate-spin={isSyncing} onclick={sync}> 🔄️ </button>
+    {/snippet}
 
-      {#each events as event}
-        <CalEvent
-          startHour={event.start}
-          duration={event.duration / HOUR}
-          dayIndex={event.day}
-          color={event.cat ? getSubcategoryColor(event.cat, event.subcat) : "red"}
-          onclick={event.calId
-            ? handleEventClick.bind(null, event)
-            : handleScheduleClick.bind(null, event)}
-          tooltip={event.name || event.subcat}
-        >
-          {event.name || event.subcat}
-        </CalEvent>
-      {/each}
-    </CalGrid>
-  </div>
+    {#each events as event}
+      <CalEvent
+        startHour={event.start}
+        duration={event.duration / HOUR}
+        dayIndex={event.day}
+        color={event.cat ? getSubcategoryColor(event.cat, event.subcat) : "red"}
+        onclick={event.calId
+          ? handleEventClick.bind(null, event)
+          : handleScheduleClick.bind(null, event)}
+        tooltip={event.name || event.subcat}
+      >
+        {event.name || event.subcat}
+      </CalEvent>
+    {/each}
+  </CalGrid>
 
   {#if needsPrompt}
-    <div
-      class="absolute inset-0 z-50 flex items-center justify-center bg-gray-500/20 backdrop-blur-[2px]"
-    >
+    <div class="sticky inset-0 bottom-0 z-50 flex items-end justify-center">
       <div
-        class="mx-4 flex flex-col items-center gap-3 rounded-2xl bg-white p-6 shadow-xl border border-gray-100 max-w-sm text-center"
+        class="mb-4 flex max-w-sm flex-col items-center rounded-2xl border border-gray-100 bg-white p-2 text-center shadow-xl"
       >
-        <div class="text-3xl animate-pulse">📅</div>
-        <h3 class="font-semibold text-gray-800 text-lg">Google Calendar Sync</h3>
-        <p class="text-sm text-gray-500">
-          Authorization is needed to refresh your Google Calendar events. We won't prompt you
-          automatically to avoid unexpected pop-ups.
-        </p>
+        <p class="text-sm text-orange-400">Calendar could be out of date</p>
         <button
-          class="mt-2 flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-5 py-2.5 font-medium text-white transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
-          onclick={promptAuthorize}
+          class="mt-2 flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-medium text-white shadow-md transition-all hover:bg-blue-700 hover:shadow-lg active:scale-95"
+          onclick={sync}
           disabled={isSyncing}
         >
           {#if isSyncing}
