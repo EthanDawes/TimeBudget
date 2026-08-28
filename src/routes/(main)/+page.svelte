@@ -10,6 +10,7 @@
   let width = $state(-1)
   let height = $state(-1)
   let selectedDay = $state(shiftWeekday(new Date().getDay()))
+  let splitMobile = $state(false)
 
   onMount(() => {
     width = window.innerWidth
@@ -20,6 +21,10 @@
       height = window.innerHeight
     })
   })
+
+  function toggleSplitMobile() {
+    splitMobile = !splitMobile
+  }
 </script>
 
 <svelte:head>
@@ -29,7 +34,20 @@
 {#if width == -1}
   <!-- No-op -->
 {:else if width < height}
-  <div class="min-h-dvh w-full bg-gray-50 p-2"><Tracker /></div>
+  {#if splitMobile}
+    <div class="flex max-h-dvh h-dvh w-full bg-gray-50 overflow-hidden">
+      <div class="w-1/2 overflow-x-clip overflow-y-auto p-1 border-r border-gray-200">
+        <BudgetAllocator {eventChannel} {selectedDay} />
+      </div>
+      <div class="w-1/2 overflow-x-clip overflow-y-auto p-1">
+        <Tracker isMobile={true} onReallocate={toggleSplitMobile} />
+      </div>
+    </div>
+  {:else}
+    <div class="min-h-dvh w-full bg-gray-50 p-2">
+      <Tracker isMobile={true} onReallocate={toggleSplitMobile} />
+    </div>
+  {/if}
 {:else}
   <div class="flex max-h-dvh w-full bg-gray-50">
     <div class="max-h-full w-[90%] overflow-x-clip overflow-y-auto">

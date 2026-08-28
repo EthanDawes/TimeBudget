@@ -9,25 +9,40 @@
   import { fmtDuration, nowMinutes } from "$lib/time"
   import { db, type TimeEntry } from "$lib/db"
   import { liveQuery } from "dexie"
-  import { onDestroy } from "svelte"
+  import { onDestroy, onMount } from "svelte"
   import { goto } from "$app/navigation"
   import SplitTimeModal from "./SplitTimeModal.svelte"
 
   interface TrackerHeaderProps {
     currentTasks?: TimeEntry[]
     now?: number
+    isMobile?: boolean
     onStopTask?: (taskId: number) => void
     onUndo?: () => void
     onSplitSubmit?: (entries: SplitEntry[]) => void
+    onReallocate?: () => void
   }
 
   let {
     currentTasks: propTasks,
     now: propNow,
+    isMobile: propIsMobile,
     onStopTask,
     onUndo,
     onSplitSubmit,
+    onReallocate,
   }: TrackerHeaderProps = $props()
+
+  let localIsMobile = $state(false)
+  onMount(() => {
+    const checkMobile = () => {
+      localIsMobile = window.innerWidth < window.innerHeight
+    }
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  })
+  let showReallocate = $derived(propIsMobile ?? localIsMobile)
 
   let _localTasks = liveQuery(() => activeTimers())
   let currentTasks = $derived(propTasks ?? $_localTasks ?? [])
@@ -161,6 +176,12 @@
       splitTime(splitEntries)
     }
   }
+
+  function handleReallocate() {
+    if (onReallocate) {
+      onReallocate()
+    }
+  }
 </script>
 
 {#if currentTasks.length > 0}
@@ -206,6 +227,9 @@
       </p>
     {/each}
     <div class="flex justify-around">
+      {#if showReallocate}
+          <button class="border" onclick={handleReallocate}>Reallocate</button>
+      {/if}
       <button class="border" onclick={() => (showSplitTimeModal = true)}>Change tracking</button>
       <button class="border" onclick={handleUndo}>Undo</button>
     </div>
