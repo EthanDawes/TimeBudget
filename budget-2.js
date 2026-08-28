@@ -94,22 +94,25 @@ const schedule = []
 
 const budget = [
   Category("Social", Total(15), [Subcat("Friends", Total(5)), Subcat("New Connections", Total(2))]),
-  Category("Coursework", Plus(0), [
+  Category("Coursework", Total(courseworkTotal), [
     // Calculated from actual week data
     // 80% time spent before Thr, 20% time after
-    Subcat("Hw", Spread(5, ROLLOVER, [S + J, 1])),
-    Subcat("Hw Review", Total(0)),
+    Subcat("Hw", Spread(20, ROLLOVER, [M + T + W + R, 0.8], [F + S + J, 0.2])),
+    Subcat("Hw Review", Total(1)),
     // It seems odd to have PLUS(0), but this'll be increased once cal events are assigned to the category in the UI
     Subcat("Lectures", Plus(0)),
   ]),
   Category("Jobs", Plus(0), [
-    Subcat("Internships", Spread(7 * WEEKDAYS, FREE, [weekdays, 1])),
+    Subcat("Job Search", Total(1 * DAILY)),
     Subcat("RHA", Plus(0)),
-    Subcat("RA", Plus(0 /* All else on cal */)),
+    Subcat(
+      "RA",
+      Plus(1 /* admin */ + 1 /* residents */ + 1 /* event planning */ /* All else on cal */),
+    ),
   ]),
   Category("Wellness", Plus(0), [
     Subcat("Eat", Spread(6.5, FREE, [everyday, 1])),
-    Subcat("Sleep", Spread(8 * DAILY, FREE, [everyday, 1])),
+    Subcat("Sleep", Total(8 * DAILY)),
     Subcat("Excercise", Spread(0.5 * DAILY, FREE, [everyday, 1])),
     Subcat("Mindfullness", Spread(((10 * MINUTE) / HOUR) * DAILY, FREE, [everyday, 1])),
     // Morning/evening routine accounted for in cal
