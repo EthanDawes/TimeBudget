@@ -103,7 +103,7 @@ const budget = [
     Subcat("Lectures", Plus(0)),
   ]),
   Category("Jobs", Plus(0), [
-    Subcat("Job Search", Total(1 * DAILY)),
+    Subcat("Search", Total(1 * DAILY)),
     Subcat("RHA", Plus(0)),
     Subcat(
       "RA",
