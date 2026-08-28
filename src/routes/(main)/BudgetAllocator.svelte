@@ -13,16 +13,15 @@
     reallocateTime,
     type AccumulatedTime,
   } from "$lib/budgetManager"
-  import { db, exportSpentTime, type Budget, Leftovers } from "$lib/db"
+  import { computeCategoryProgress } from "$lib/budgetCalculations"
+  import BudgetProgressView from "./BudgetProgressView.svelte"
+  import { db, type Budget, Leftovers } from "$lib/db"
   import { liveQuery } from "dexie"
-  import LabeledProgress from "./LabeledProgress.svelte"
-  import { resolve } from "$app/paths"
   import {
     daysOfWeek,
     MILLISECOND,
     MINUTE,
     WEEK,
-    DAY,
     nowMinutes,
     parseDuration,
     fmtDuration,
@@ -193,10 +192,6 @@
       }
       const scheduledTimeToday = generalScheduleToday.duration
 
-      // Visually check subcat allocator multibar to see remaining time total
-      // Visually check "Unallocated time" on tracker page for free time available today. Wasn't worth bringing all that logic here
-      // Visually check subcat tracker multibar for time over/under scheduled time today
-
       // Prompt user
       const response = prompt(
         `Editing scheduled time on ${daysOfWeek[selectedDay]} for ${subcategory}\n\n` +
@@ -269,7 +264,7 @@
   }
 
   function addSubcat() {
-    const category = prompt("parent category name") // TODO: better way. Before I split management from tracking, used currentTasks[0]?.category
+    const category = prompt("parent category name")
     if (!category) {
       alert("You must have a currently active task in the category you want to add")
     }
@@ -371,9 +366,47 @@
   let unallocatedSpent = $derived(
     calculateOverage(activeBudget, effectiveAccumulatedTime) + weeklyGapTime,
   )
-  let remainingUnallocated = $derived(
-    Math.max(0, unallocatedTime - (unallocatedSpent + unallocatedScheduledTime)),
+
+  let progressData = $derived(
+    computeCategoryProgress({
+      categories: activeBudget,
+      spentBySubcategory: effectiveAccumulatedTime,
+      scheduledBySubcategory: scheduledTime,
+      unallocatedBudget: unallocatedTime,
+      unallocatedSpent,
+      unallocatedScheduled: unallocatedScheduledTime,
+      keyFormat: "concat",
+    }),
   )
+
+  // Selection state helpers
+  const isSourceCategory = (catName: string) =>
+    sourceSelection?.category === catName && !sourceSelection.subcategory
+  const isTargetCategory = (catName: string) =>
+    targetSelection?.category === catName && !targetSelection.subcategory
+  const hasSelectedSubcategory = (catName: string) =>
+    (sourceSelection?.category === catName && !!sourceSelection.subcategory) ||
+    (targetSelection?.category === catName && !!targetSelection.subcategory)
+  const isCategoryDisabled = (catName: string) => {
+    if (!showReallocationMode || sourceSelection) return false
+    return getAvailableTime(budget, effectiveAccumulatedTime, catName, null) <= 0
+  }
+
+  const isSourceSubcategory = (catName: string, subName: string) =>
+    sourceSelection?.category === catName && sourceSelection?.subcategory === subName
+  const isTargetSubcategory = (catName: string, subName: string) =>
+    targetSelection?.category === catName && targetSelection?.subcategory === subName
+  const isSubcategoryDisabled = (catName: string, subName: string) => {
+    if (!showReallocationMode || sourceSelection) return false
+    return getAvailableTime(budget, effectiveAccumulatedTime, catName, subName) <= 0
+  }
+
+  let isSourceUnallocated = $derived(sourceSelection?.category === null)
+  let isTargetUnallocated = $derived(targetSelection?.category === null)
+  let isUnallocatedDisabled = $derived.by(() => {
+    if (!showReallocationMode || sourceSelection) return false
+    return getAvailableTime(budget, effectiveAccumulatedTime, null, null) <= 0
+  })
 
   async function handleContextClick(categoryName: string, subcategoryName: string | null) {
     const labels = ["M", "T", "W", "R", "F", "S", "J"]
@@ -381,7 +414,6 @@
 
     const spentDaily = labels.map((_, idx) => {
       if (idx > today) return 0
-      // TODO: use WIP timeEntries (unfinished timeEntries count assuming end now)
       const d = timeEntries
         .filter(
           (ev) =>
@@ -403,7 +435,6 @@
       const d = todaySchedule.reduce((acc, ev) => acc + (ev?.duration ?? 0), 0)
 
       return Math.max(0, d)
-      // todaySchedule.map((ev) => ev.name ?? ev.subcat).join(", ")})  // If I wanted a list of all events
     })
 
     const scheduled = labels.map(
@@ -421,265 +452,162 @@
   }
 </script>
 
-{#if showReallocationMode}
-  <!-- TODO: less jank width method -->
-  <div
-    class="fixed top-0 right-0 left-0 z-50 border-b bg-white p-4 shadow-lg"
-    style="width: calc(90% - 400px)"
-  >
-    <div class="mx-auto max-w-4xl">
-      <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-semibold">Rebudget Time</h3>
-        <div class="flex space-x-2">
-          <button
-            class="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-50"
-            onclick={() => {
-              commitReallocation()
-              handleReallocationModeToggle()
-            }}
-            disabled={!sourceSelection || !targetSelection || reallocationAmount <= 0}
-          >
-            Commit
-          </button>
-          <button class="rounded border px-3 py-1" onclick={handleReallocationModeToggle}>
-            Cancel
-          </button>
+{#snippet topSection()}
+  {#if showReallocationMode}
+    <div
+      class="fixed top-0 right-0 left-0 z-50 border-b bg-white p-4 shadow-lg"
+      style="width: calc(90% - 400px)"
+    >
+      <div class="mx-auto max-w-4xl">
+        <div class="mb-4 flex items-center justify-between">
+          <h3 class="text-lg font-semibold">Rebudget Time</h3>
+          <div class="flex space-x-2">
+            <button
+              class="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-50"
+              onclick={() => {
+                commitReallocation()
+                handleReallocationModeToggle()
+              }}
+              disabled={!sourceSelection || !targetSelection || reallocationAmount <= 0}
+            >
+              Commit
+            </button>
+            <button class="rounded border px-3 py-1" onclick={handleReallocationModeToggle}>
+              Cancel
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div class="flex items-center space-x-4">
-        <div class="flex-1">
+        <div class="flex items-center space-x-4">
+          <div class="flex-1">
+            <input
+              type="range"
+              min="0"
+              max={ceilTo(maxReallocationAmount, 15)}
+              step={15 * MINUTE}
+              bind:value={reallocationAmount}
+              class="w-full"
+            />
+          </div>
           <input
-            type="range"
-            min="0"
-            max={ceilTo(maxReallocationAmount, 15)}
-            step={15 * MINUTE}
-            bind:value={reallocationAmount}
-            class="w-full"
+            type="text"
+            bind:value={reallocationAmountText}
+            placeholder="1h 30m"
+            class="w-24 rounded border px-3 py-1 text-center"
           />
+          {#if reallocationAmount == maxReallocationAmount}
+            <button class="rounded bg-green-600 px-3 py-1 text-white" onclick={finishSubcat}>
+              Finish
+            </button>
+          {/if}
         </div>
-        <input
-          type="text"
-          bind:value={reallocationAmountText}
-          placeholder="1h 30m"
-          class="w-24 rounded border px-3 py-1 text-center"
-        />
-        {#if reallocationAmount == maxReallocationAmount}
-          <button class="rounded bg-green-600 px-3 py-1 text-white" onclick={finishSubcat}>
-            Finish
-          </button>
+
+        {#if sourceSelection || targetSelection}
+          <div class="mt-2 text-sm text-gray-600">
+            {#if sourceSelection}
+              From: {sourceSelection.category ?? "Unallocated"}{sourceSelection.subcategory
+                ? ` → ${sourceSelection.subcategory}`
+                : ""}
+            {/if}
+            {#if targetSelection}
+              | To: {targetSelection.category ?? "Unallocated"}{targetSelection.subcategory
+                ? ` → ${targetSelection.subcategory}`
+                : ""}
+            {/if}
+          </div>
         {/if}
       </div>
-
-      {#if sourceSelection || targetSelection}
-        <div class="mt-2 text-sm text-gray-600">
-          {#if sourceSelection}
-            From: {sourceSelection.category ?? "Unallocated"}{sourceSelection.subcategory
-              ? ` → ${sourceSelection.subcategory}`
-              : ""}
-          {/if}
-          {#if targetSelection}
-            | To: {targetSelection.category ?? "Unallocated"}{targetSelection.subcategory
-              ? ` → ${targetSelection.subcategory}`
-              : ""}
-          {/if}
-        </div>
-      {/if}
     </div>
-  </div>
-{/if}
-
-{#if !showReallocationMode}
-  <div class="pb-1.5">
-    <div class="flex justify-around">
-      Editing {daysOfWeek[selectedDay]}
-      <button class="border" onclick={handleReallocationModeToggle}>Rebudget</button>
-    </div>
-  </div>
-{/if}
-
-<div class="flex flex-col gap-5">
-  {#each activeBudget as category}
-    {@const categoryName = category.name}
-    {@const categoryAvailable = getAvailableTime(
-      budget,
-      effectiveAccumulatedTime,
-      categoryName,
-      null,
-    )}
-    {@const isSourceCategory =
-      sourceSelection?.category === categoryName && !sourceSelection.subcategory}
-    {@const isTargetCategory =
-      targetSelection?.category === categoryName && !targetSelection.subcategory}
-    {@const hasSelectedSubcategory =
-      (sourceSelection?.category === categoryName && sourceSelection.subcategory) ||
-      (targetSelection?.category === categoryName && targetSelection.subcategory)}
-    {@const isCategoryDisabled = showReallocationMode && !sourceSelection && categoryAvailable <= 0}
-
-    {@const totalCategorySpillover =
-      category.time - category.subcategories.reduce((sum, s) => sum + s.time, 0)}
-    {@const totalSubcategoryOverage = category.subcategories.reduce((sum, s) => {
-      const subKey = categoryName + s.name
-      const projected = (effectiveAccumulatedTime[subKey] ?? 0) + (scheduledTime[subKey] ?? 0)
-      return sum + Math.max(0, projected - s.time)
-    }, 0)}
-    {@const poolAllocated = Math.min(totalSubcategoryOverage, totalCategorySpillover)}
-    {@const remainingCategorySpillover = Math.max(
-      0,
-      totalCategorySpillover - totalSubcategoryOverage,
-    )}
-    <div
-      class="block {isSourceCategory || isTargetCategory || hasSelectedSubcategory
-        ? 'rounded border bg-white p-2'
-        : ''}"
-    >
-      <div
-        class="px-3 py-1 {showReallocationMode
-          ? !sourceSelection && categoryAvailable <= 0
-            ? 'cursor-not-allowed opacity-50 grayscale'
-            : 'cursor-pointer'
-          : ''}"
-        role={showReallocationMode && !(!sourceSelection && categoryAvailable <= 0)
-          ? "button"
-          : undefined}
-        onclick={showReallocationMode && !(!sourceSelection && categoryAvailable <= 0)
-          ? () => handleCategoryClick(categoryName)
-          : undefined}
-      >
-        <h2
-          class="flex justify-between text-xl font-bold {isSourceCategory
-            ? 'text-blue-600'
-            : isTargetCategory
-              ? 'text-green-600'
-              : ''}"
-        >
-          <span>{categoryName}</span>
-          <span>
-            {fmtDuration(
-              category.time -
-                Object.values(category.subcategories).reduce((sum, budget) => sum + budget.time, 0),
-            )}
-          </span>
-        </h2>
+  {:else}
+    <div class="pb-1.5">
+      <div class="flex justify-around">
+        Editing {daysOfWeek[selectedDay]}
+        <button class="border" onclick={handleReallocationModeToggle}>Rebudget</button>
       </div>
-
-      {#each category.subcategories as sub}
-        {@const subcategoryName = sub.name}
-        {@const subcategoryBudget = sub.time}
-        {@const subcategoryAvailable = getAvailableTime(
-          budget,
-          effectiveAccumulatedTime,
-          categoryName,
-          subcategoryName,
-        )}
-        {@const isSourceSubcategory =
-          sourceSelection?.category === categoryName &&
-          sourceSelection?.subcategory === subcategoryName}
-        {@const isTargetSubcategory =
-          targetSelection?.category === categoryName &&
-          targetSelection?.subcategory === subcategoryName}
-
-        {@const isDisabled = showReallocationMode && !sourceSelection && subcategoryAvailable <= 0}
-        {@const subcategorySpent = effectiveAccumulatedTime[categoryName + subcategoryName] ?? 0}
-        {@const subcategoryScheduled = scheduledTime[categoryName + subcategoryName] ?? 0}
-        {@const subcategoryOverage = Math.max(
-          0,
-          subcategorySpent + subcategoryScheduled - subcategoryBudget,
-        )}
-        {@const categorySpilloverForThis =
-          totalSubcategoryOverage > 0
-            ? (subcategoryOverage / totalSubcategoryOverage) * poolAllocated
-            : 0}
-
-        <div
-          class="{isSourceSubcategory || isTargetSubcategory
-            ? 'ml-2 rounded border bg-white p-1'
-            : ''} {isDisabled ? 'opacity-50 grayscale' : ''}"
-        >
-          <LabeledProgress
-            spent={subcategorySpent + subcategoryScheduled}
-            overlayStart={subcategorySpent > 0 || subcategoryScheduled > 0
-              ? subcategorySpent
-              : undefined}
-            budget={subcategoryBudget}
-            {totalCategorySpillover}
-            {categorySpilloverForThis}
-            {remainingCategorySpillover}
-            {remainingUnallocated}
-            style={showReallocationMode
-              ? !sourceSelection && subcategoryAvailable <= 0
-                ? "cursor-not-allowed"
-                : "cursor-pointer"
-              : "cursor-pointer"}
-            onclick={() => handleCategoryClick(categoryName, subcategoryName)}
-            oncontextmenu={(ev) => {
-              ev.preventDefault()
-              handleContextClick(categoryName, subcategoryName)
-            }}
-          >
-            {#if isSourceSubcategory}
-              🔵
-            {:else if isTargetSubcategory}
-              🟢
-            {/if}
-            {subcategoryName}
-          </LabeledProgress>
-        </div>
-      {/each}
     </div>
-  {/each}
+  {/if}
+{/snippet}
 
-  {#snippet unallocatedSection()}
-    {@const unallocatedAvailable = getAvailableTime(budget, effectiveAccumulatedTime, null, null)}
-    {@const isSourceUnallocated = sourceSelection?.category === null}
-    {@const isTargetUnallocated = targetSelection?.category === null}
-    {@const isUnallocatedDisabled =
-      showReallocationMode && !sourceSelection && unallocatedAvailable <= 0}
-    <div class={isSourceUnallocated || isTargetUnallocated ? "rounded border bg-white p-2" : ""}>
-      <LabeledProgress
-        spent={unallocatedSpent + unallocatedScheduledTime}
-        overlayStart={unallocatedScheduledTime > 0 ? unallocatedSpent : undefined}
-        budget={unallocatedTime}
-        style={showReallocationMode
-          ? !sourceSelection && unallocatedAvailable <= 0
-            ? "cursor-not-allowed opacity-50 grayscale"
-            : "cursor-pointer"
-          : ""}
-        onclick={showReallocationMode && !isUnallocatedDisabled
-          ? handleUnallocatedClick
-          : undefined}
-      >
-        <h2
-          class="font-bold {isSourceUnallocated
-            ? 'text-blue-600'
-            : isTargetUnallocated
-              ? 'text-green-600'
-              : ''}"
-        >
-          {#if isSourceUnallocated}
-            🔵
-          {:else if isTargetUnallocated}
-            🟢
-          {/if}
-          Unallocated time
-        </h2>
-      </LabeledProgress>
-    </div>
-  {/snippet}
+{#snippet subcategoryPrefix(sub: { name: string }, cat: { name: string })}
+  {#if isSourceSubcategory(cat.name, sub.name)}
+    🔵
+  {:else if isTargetSubcategory(cat.name, sub.name)}
+    🟢
+  {/if}
+{/snippet}
 
-  {@render unallocatedSection()}
-</div>
+{#snippet unallocatedPrefix()}
+  {#if isSourceUnallocated}
+    🔵
+  {:else if isTargetUnallocated}
+    🟢
+  {/if}
+{/snippet}
 
-<div class="text-center">
+{#snippet footerExtras()}
   <button class="border" onclick={addSubcat}>Add subcat</button>
-  <a href={resolve("/day")}>
-    <button class="border">Day history</button>
-  </a>
-  <a href={resolve("/week")}>
-    <button class="border">Week history</button>
-  </a>
-  <a href={resolve("/settings")}>
-    <button class="border">Settings</button>
-  </a>
-  <button class="border" onclick={exportSpentTime}>Export</button>
-</div>
+{/snippet}
+
+<BudgetProgressView
+  categories={progressData.categories}
+  unallocated={progressData.unallocated}
+  isMultiBar={true}
+  top={topSection}
+  {subcategoryPrefix}
+  {unallocatedPrefix}
+  {footerExtras}
+  getCategoryClass={(cat) =>
+    isSourceCategory(cat.name) ||
+    isTargetCategory(cat.name) ||
+    hasSelectedSubcategory(cat.name)
+      ? "rounded border bg-white p-2"
+      : ""}
+  getCategoryHeaderClass={(cat) =>
+    showReallocationMode
+      ? isCategoryDisabled(cat.name)
+        ? "cursor-not-allowed opacity-50 grayscale"
+        : "cursor-pointer"
+      : ""}
+  getCategoryHeaderTitleClass={(cat) =>
+    isSourceCategory(cat.name)
+      ? "text-blue-600"
+      : isTargetCategory(cat.name)
+        ? "text-green-600"
+        : ""}
+  getSubcategoryContainerClass={(sub, cat) =>
+    `${
+      isSourceSubcategory(cat.name, sub.name) || isTargetSubcategory(cat.name, sub.name)
+        ? "ml-2 rounded border bg-white p-1"
+        : ""
+    } ${isSubcategoryDisabled(cat.name, sub.name) ? "opacity-50 grayscale" : ""}`}
+  getSubcategoryProgressStyle={(sub, cat) =>
+    showReallocationMode && isSubcategoryDisabled(cat.name, sub.name)
+      ? "cursor-not-allowed"
+      : "cursor-pointer"}
+  getUnallocatedContainerClass={() =>
+    isSourceUnallocated || isTargetUnallocated ? "rounded border bg-white p-2" : ""}
+  getUnallocatedProgressStyle={() =>
+    showReallocationMode
+      ? isUnallocatedDisabled
+        ? "cursor-not-allowed opacity-50 grayscale"
+        : "cursor-pointer"
+      : ""}
+  getUnallocatedTitleClass={() =>
+    isSourceUnallocated
+      ? "text-blue-600"
+      : isTargetUnallocated
+        ? "text-green-600"
+        : ""}
+  onCategoryClick={(cat) => {
+    if (showReallocationMode && !isCategoryDisabled(cat.name)) {
+      handleCategoryClick(cat.name)
+    }
+  }}
+  onSubcategoryClick={(sub, cat) => handleCategoryClick(cat.name, sub.name)}
+  onSubcategoryContextMenu={(sub, cat) => handleContextClick(cat.name, sub.name)}
+  onUnallocatedClick={() => {
+    if (showReallocationMode && !isUnallocatedDisabled) {
+      handleUnallocatedClick()
+    }
+  }}
+/>

@@ -10,8 +10,8 @@
     type SplitEntry,
     calculateGapTime,
   } from "$lib/budgetManager"
-  import { exportSpentTime } from "$lib/db"
-  import LabeledProgress from "./LabeledProgress.svelte"
+  import { computeCategoryProgress } from "$lib/budgetCalculations"
+  import BudgetProgressView from "./BudgetProgressView.svelte"
   import SplitTimeModal from "./SplitTimeModal.svelte"
   import { resolve } from "$app/paths"
   import { fmtDuration, MILLISECOND, DAY, nowMinutes, shiftWeekday } from "$lib/time"
@@ -181,21 +181,28 @@
     ),
   )
 
+  let progressData = $derived(
+    computeCategoryProgress({
+      categories: budgetTemplate,
+      spentBySubcategory: effectiveSpent,
+      customSubcategoryBudgets: budget,
+      unallocatedBudget,
+      unallocatedSpent: unallocatedSpent + ($timeGap ?? 0),
+      keyFormat: "subcatOnly",
+    }),
+  )
+
   // Clean up any tasks that have been running for more than 24 hours
   cleanupLongRunningTasks() // ok to ignore async return
   // Resolve sync conflicts where 2+ tasks ended up running at the same time
   fixDuplicateActiveTasks() // ok to ignore async return
 
-  const setState = () => {} // TODO: delete
-
   async function switchTask(category: string, subcategory: string) {
     await switchTaskConcurrent(category, subcategory)
-    setState()
   }
 
   async function stopSpecificTask(taskId: number) {
     await finishTaskById(taskId)
-    setState()
   }
 
   function handleCategoryClick(category: string, subcategory?: string) {
@@ -217,9 +224,7 @@
   }
 
   function handleSplitTimeSubmit(splitEntries: SplitEntry[]) {
-    splitTime(splitEntries).then(() => {
-      setState()
-    })
+    splitTime(splitEntries)
   }
 
   async function undoTrack() {
@@ -234,121 +239,83 @@
   }
 </script>
 
-{#if currentTasks.length > 0}
-  <div class="pb-1.5">
-    {#each currentTasks as task}
-      <p class="mb-1 flex items-center justify-around border-b pb-1">
-        <span class="flex items-center gap-2">
-          <!-- Sync status indicator -->
-          <button
-            class="relative flex h-3.5 w-3.5 cursor-pointer items-center justify-center rounded-full transition-all duration-300 hover:scale-120 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
-            onclick={handleSyncClick}
-            title={dbLoggedIn
-              ? `Cloud Sync: ${syncInfo.label} (${syncInfo.description}). Click to force sync.`
-              : `Cloud Sync: ${syncInfo.description} Click to go to Settings.`}
-            aria-label="Cloud sync status: {syncInfo.label}"
-          >
-            {#if syncInfo.animate}
-              <span
-                class="absolute inline-flex h-full w-full animate-ping rounded-full {syncInfo.color} opacity-40"
-              ></span>
-            {/if}
-            <span
-              class="relative inline-flex h-2.5 w-2.5 rounded-full {syncInfo.color} shadow-[0_0_6px_rgba(0,0,0,0.1)] transition-colors duration-500"
-            ></span>
-          </button>
-
-          <button
-            class="border-none bg-transparent p-0 text-blue-600 {currentTasks.length > 1
-              ? 'cursor-pointer'
-              : 'cursor-not-allowed opacity-50'}"
-            onclick={() => currentTasks.length > 1 && stopSpecificTask(task.id)}
-            disabled={currentTasks.length <= 1}
-            title={currentTasks.length <= 1
-              ? "Cannot stop the last running task - at least one task must always be active"
-              : "Click to stop this task"}
-          >
-            ▶️ {task.subcategory}
-          </button>
-        </span>
-        <span>
-          {fmtDuration(now - task.timestampStart)}
-        </span>
-      </p>
-    {/each}
-    <div class="flex justify-around">
-      <button class="border" onclick={() => (showSplitTimeModal = true)}>Change tracking</button>
-      <button class="border" onclick={undoTrack}>Undo</button>
-    </div>
-  </div>
-{/if}
-
-<div class="flex flex-col gap-5" class:scale-50={zoomOut}>
-  {#if zoomOut}
-    <h2 class="h-0 text-center text-xl font-bold">
-      {new Intl.DateTimeFormat(undefined, {
-        weekday: "short",
-        month: "numeric",
-        day: "numeric",
-      }).format(new Date())}
-    </h2>
-  {/if}
-  {#each budgetTemplate as cat}
-    <div class="block">
-      <div class="px-3 py-1">
-        <h2 class="text-xl font-bold">
-          {cat.name}
-        </h2>
-      </div>
-
-      {#each cat.subcategories as sub}
-        {#if budget[sub.name] > 0 || effectiveSpent[sub.name] > 0}
-          <div>
-            <!-- Don't ?? 0 to budget in style b/c if there is no budget, its bar shouldn't be shown. -->
-            <LabeledProgress
-              spent={effectiveSpent[sub.name] ?? 0}
-              budget={budget[sub.name] ?? 0}
-              style={budget[sub.name] - (effectiveSpent[sub.name] ?? 0) > 0
-                ? "cursor-pointer"
-                : "opacity-50 pointer-events-none"}
-              onclick={() => handleCategoryClick(cat.name, sub.name)}
+{#snippet topSection()}
+  {#if currentTasks.length > 0}
+    <div class="pb-1.5">
+      {#each currentTasks as task (task.id)}
+        <p class="mb-1 flex items-center justify-around border-b pb-1">
+          <span class="flex items-center gap-2">
+            <!-- Sync status indicator -->
+            <button
+              class="relative flex h-3.5 w-3.5 cursor-pointer items-center justify-center rounded-full transition-all duration-300 hover:scale-120 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+              onclick={handleSyncClick}
+              title={dbLoggedIn
+                ? `Cloud Sync: ${syncInfo.label} (${syncInfo.description}). Click to force sync.`
+                : `Cloud Sync: ${syncInfo.description} Click to go to Settings.`}
+              aria-label="Cloud sync status: {syncInfo.label}"
             >
-              {@const isRunning = currentTasks.some(
-                (task) => task.category === cat.name && task.subcategory === sub.name,
-              )}
-              {#if isRunning}
-                ▶️
+              {#if syncInfo.animate}
+                <span
+                  class="absolute inline-flex h-full w-full animate-ping rounded-full {syncInfo.color} opacity-40"
+                ></span>
               {/if}
-              {sub.name}
-            </LabeledProgress>
-          </div>
-        {/if}
+              <span
+                class="relative inline-flex h-2.5 w-2.5 rounded-full {syncInfo.color} shadow-[0_0_6px_rgba(0,0,0,0.1)] transition-colors duration-500"
+              ></span>
+            </button>
+
+            <button
+              class="border-none bg-transparent p-0 text-blue-600 {currentTasks.length > 1
+                ? 'cursor-pointer'
+                : 'cursor-not-allowed opacity-50'}"
+              onclick={() => currentTasks.length > 1 && stopSpecificTask(task.id)}
+              disabled={currentTasks.length <= 1}
+              title={currentTasks.length <= 1
+                ? "Cannot stop the last running task - at least one task must always be active"
+                : "Click to stop this task"}
+            >
+              ▶️ {task.subcategory}
+            </button>
+          </span>
+          <span>
+            {fmtDuration(now - task.timestampStart)}
+          </span>
+        </p>
       {/each}
+      <div class="flex justify-around">
+        <button class="border" onclick={() => (showSplitTimeModal = true)}>Change tracking</button>
+        <button class="border" onclick={undoTrack}>Undo</button>
+      </div>
     </div>
-  {/each}
+  {/if}
+{/snippet}
 
-  <div>
-    <LabeledProgress spent={unallocatedSpent + $timeGap} budget={unallocatedBudget}>
-      <h2 class="font-bold">Unallocated time</h2>
-    </LabeledProgress>
-  </div>
-</div>
+{#snippet subcategoryPrefix(sub: { name: string }, cat: { name: string })}
+  {@const isRunning = currentTasks.some(
+    (task) => task.category === cat.name && task.subcategory === sub.name,
+  )}
+  {#if isRunning}
+    ▶️
+  {/if}
+{/snippet}
 
-<div class="text-center">
-  <a href={resolve("/day")}>
-    <button class="border">Day history</button>
-  </a>
-  <a href={resolve("/week")}>
-    <button class="border">Week history</button>
-  </a>
-  <a href={resolve("/settings")}>
-    <button class="border">Settings</button>
-  </a>
-  <button class="border" onclick={exportSpentTime}>Export</button>
+{#snippet footerExtras()}
   <label>
     Zoom&nbsp;out
     <input type="checkbox" bind:checked={zoomOut} />
   </label>
-</div>
+{/snippet}
+
+<BudgetProgressView
+  categories={progressData.categories}
+  unallocated={progressData.unallocated}
+  hideEmpty={true}
+  {zoomOut}
+  isMultiBar={false}
+  top={topSection}
+  {subcategoryPrefix}
+  {footerExtras}
+  onSubcategoryClick={(sub, cat) => handleCategoryClick(cat.name, sub.name)}
+/>
 
 <SplitTimeModal {currentTasks} bind:isOpen={showSplitTimeModal} onsubmit={handleSplitTimeSubmit} />
