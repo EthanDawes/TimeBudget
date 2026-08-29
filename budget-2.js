@@ -15,7 +15,8 @@ const F = 16 // Muslim day of worship Jum'ah
 const S = 32 // Sabbath
 const J = 64 // Jesusday
 const weekdays = M + T + W + R + F
-const everyday = weekdays + S + J
+const weekends = S + J
+const everyday = weekdays + weekends
 
 // Unspent behavior
 // If unspent that day, will persist and need to be budgeted some other day. Default
@@ -83,7 +84,7 @@ const Subcat = (name, time) => ({
 })
 
 // Useful estimates
-const creditHours = 11
+const creditHours = 13
 const workPerCredHour = 3
 const courseworkTotal = creditHours * workPerCredHour
 
@@ -97,7 +98,7 @@ const budget = [
   Category("Coursework", Total(courseworkTotal), [
     // Calculated from actual week data
     // 80% time spent before Thr, 20% time after
-    Subcat("Hw", Spread(20, ROLLOVER, [M + T + W + R, 0.8], [F + S + J, 0.2])),
+    Subcat("Hw", Spread(20, ROLLOVER, [weekdays, 0.9], [weekends, 0.1])),
     Subcat("Hw Review", Total(1)),
     // It seems odd to have PLUS(0), but this'll be increased once cal events are assigned to the category in the UI
     Subcat("Lectures", Plus(0)),
@@ -112,7 +113,7 @@ const budget = [
   ]),
   Category("Wellness", Plus(0), [
     Subcat("Eat", Spread(6.5, FREE, [everyday, 1])),
-    Subcat("Sleep", Total(8 * DAILY)),
+    Subcat("Sleep", Spread(8 * DAILY, FREE, [everyday, 1])),
     Subcat("Excercise", Spread(0.5 * DAILY, FREE, [everyday, 1])),
     Subcat("Mindfullness", Spread(((10 * MINUTE) / HOUR) * DAILY, FREE, [everyday, 1])),
     // Morning/evening routine accounted for in cal
