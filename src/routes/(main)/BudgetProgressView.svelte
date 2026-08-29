@@ -16,6 +16,7 @@
     hideEmpty?: boolean
     zoomOut?: boolean
     isMultiBar?: boolean
+    showOverlay?: boolean
 
     // Container and Style functions
     getCategoryClass?: (cat: CategoryProgressItem) => string
@@ -60,6 +61,7 @@
     hideEmpty = false,
     zoomOut = false,
     isMultiBar = true,
+    showOverlay = isMultiBar,
     getCategoryClass,
     getCategoryHeaderClass,
     getCategoryHeaderTitleClass,
@@ -124,7 +126,7 @@
           <div class={getSubcategoryContainerClass?.(sub, cat) ?? ""}>
             <LabeledProgress
               spent={sub.totalSpent}
-              overlayStart={sub.overlayStart}
+              overlayStart={showOverlay ? sub.overlayStart : undefined}
               budget={sub.budget}
               totalCategorySpillover={isMultiBar ? cat.totalCategorySpillover : undefined}
               categorySpilloverForThis={isMultiBar ? sub.categorySpilloverForThis : undefined}
@@ -159,7 +161,7 @@
     <div class={getUnallocatedContainerClass?.() ?? ""}>
       <LabeledProgress
         spent={unallocated.spent}
-        overlayStart={unallocated.overlayStart}
+        overlayStart={showOverlay ? unallocated.overlayStart : undefined}
         budget={unallocated.budget}
         style={getUnallocatedProgressStyle?.() ?? ""}
         onclick={onUnallocatedClick}

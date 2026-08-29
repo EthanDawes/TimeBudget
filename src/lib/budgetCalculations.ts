@@ -93,7 +93,7 @@ export function computeCategoryProgress({
       const subScheduled = scheduledBySubcategory[key] ?? 0
       const totalSpent = subSpent + subScheduled
       const overage = Math.max(0, totalSpent - subBudget)
-      const overlayStart = subSpent > 0 || subScheduled > 0 ? subSpent : undefined
+      const overlayStart = subScheduled > 0 ? subSpent : undefined
 
       return {
         name: s.name,
